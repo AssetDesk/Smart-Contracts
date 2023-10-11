@@ -220,14 +220,11 @@ pub struct LendingContract;
 
 #[contractimpl]
 impl LendingContract {
-    pub fn deposit(env: Env, user_address: Address) {
-        let denom = Symbol::new(&env, "USDT");
-        let deposited_token_amount = 100_u128;
+    pub fn deposit(env: Env, user_address: Address, denom: Symbol, deposited_token_amount: u128) {
 
         execute_update_liquidity_index_data(env.clone(), denom.clone());
 
         let token_decimals: u32 = get_token_decimal(env.clone(), denom.clone());
-
         let mm_token_price: u128 = get_mm_token_price(env.clone(), denom.clone());
 
         let deposited_mm_token_amount =
