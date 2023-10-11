@@ -3,10 +3,12 @@ use soroban_sdk::{contracttype, Address, Symbol};
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
-    TOTAL_BORROW_DATA(Symbol),              // TotalBorrowData per denom
-    SUPPORTED_TOKENS(Symbol),               // TokenInfo denom data
-    LIQUIDITY_INDEX_DATA(Symbol),           // LiquidityIndexData per denom
-    USER_MM_TOKEN_BALANCE(Address, Symbol), // user mm token balance per denom
+    TOTAL_BORROW_DATA(Symbol),                // TotalBorrowData per denom
+    SUPPORTED_TOKENS(Symbol),                 // TokenInfo denom data
+    LIQUIDITY_INDEX_DATA(Symbol),             // LiquidityIndexData per denom
+    USER_MM_TOKEN_BALANCE(Address, Symbol),   // user mm token balance per denom
+    RESERVE_CONFIGURATION(Symbol),            // ReserveConfiguration per denom
+    TOKENS_INTEREST_RATE_MODEL_PARAM(Symbol), // TokenInterestRateModelParams per denom
 }
 
 #[contracttype]

@@ -1,7 +1,10 @@
 #![no_std]
 #![feature(alloc_error_handler)]
 
-use crate::types::{DataKey, LiquidityIndexData, TokenInfo, TotalBorrowData};
+use crate::types::{
+    DataKey, LiquidityIndexData, ReserveConfiguration, TokenInfo, TokenInterestRateModelParams,
+    TotalBorrowData,
+};
 
 use soroban_sdk::{
     contract, contracterror, contractimpl, panic_with_error, symbol_short, token, vec, Address,
@@ -11,6 +14,14 @@ use soroban_sdk::{
 use crate::alloc::string::ToString;
 use core::ops::{Add, Div, Mul};
 use rust_decimal::prelude::{Decimal, MathematicalOps};
+
+use linked_list_allocator::LockedHeap;
+
+#[global_allocator]
+static ALLOCATOR: LockedHeap = LockedHeap::empty();
+
+#[macro_use]
+extern crate alloc;
 
 mod types;
 
@@ -23,14 +34,6 @@ const HUNDRED: u128 = 100;
 const YEAR_IN_SECONDS: u128 = 31536000; // 365 days
 
 const USD_DECIMALS: u32 = 8;
-
-use linked_list_allocator::LockedHeap;
-
-#[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
-
-#[macro_use]
-extern crate alloc;
 
 pub trait DecimalExt {
     fn to_u128_with_decimals(&self, decimals: u32) -> Result<u128, rust_decimal::Error>;
@@ -251,6 +254,80 @@ impl LendingContract {
         env.storage().persistent().set(
             &DataKey::USER_MM_TOKEN_BALANCE(user_address.clone(), denom.clone()),
             &new_user_mm_token_balance,
+        );
+    }
+
+    pub fn AddMarkets(
+        env: Env,
+        denom: Symbol,
+        name: Symbol,
+        symbol: Symbol,
+        decimals: u32,
+        loan_to_value_ratio: u128,
+        liquidation_threshold: u128,
+        min_interest_rate: u128,
+        safe_borrow_max_rate: u128,
+        rate_growth_factor: u128,
+        optimal_utilization_ratio: u128,
+    ) {
+        // assert!(
+        //     !SUPPORTED_TOKENS.has(deps.storage, denom.clone()),
+        //     "There already exists such a supported token"
+        // );
+
+        let token_info: TokenInfo = TokenInfo {
+            denom: denom.clone(),
+            name,
+            symbol,
+            decimals,
+        };
+        env.storage()
+            .persistent()
+            .set(&DataKey::SUPPORTED_TOKENS(denom.clone()), &token_info);
+
+        let reserve_configuration: ReserveConfiguration = ReserveConfiguration {
+            denom: denom.clone(),
+            loan_to_value_ratio,
+            liquidation_threshold,
+        };
+        env.storage().persistent().set(
+            &DataKey::RESERVE_CONFIGURATION(denom.clone()),
+            &reserve_configuration,
+        );
+
+        let tokens_interest_rate_model_params: TokenInterestRateModelParams =
+            TokenInterestRateModelParams {
+                denom: denom.clone(),
+                min_interest_rate,
+                safe_borrow_max_rate,
+                rate_growth_factor,
+                optimal_utilization_ratio,
+            };
+        env.storage().persistent().set(
+            &DataKey::TOKENS_INTEREST_RATE_MODEL_PARAM(denom.clone()),
+            &tokens_interest_rate_model_params,
+        );
+
+        let total_borrow_data: TotalBorrowData = TotalBorrowData {
+            denom: denom.clone(),
+            total_borrowed_amount: 0_u128,
+            expected_annual_interest_income: 0_u128,
+            average_interest_rate: 0_u128,
+            timestamp: env.ledger().timestamp(),
+        };
+        env.storage().persistent().set(
+            &DataKey::TOTAL_BORROW_DATA(denom.clone()),
+            &total_borrow_data,
+        );
+
+        let liquidity_index_data: LiquidityIndexData = LiquidityIndexData {
+            denom: denom.clone(),
+            liquidity_index_ln: 0_u128,
+            timestamp: env.ledger().timestamp(),
+        };
+        env.storage().persistent().set(
+            &DataKey::LIQUIDITY_INDEX_DATA(denom.clone()),
+            &liquidity_index_data,
         );
     }
 }
