@@ -15,10 +15,10 @@ use crate::alloc::string::ToString;
 use core::ops::{Add, Div, Mul};
 use rust_decimal::prelude::{Decimal, MathematicalOps};
 
-use linked_list_allocator::LockedHeap;
+// use linked_list_allocator::LockedHeap;
 
-#[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
+// #[global_allocator]
+// static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 #[macro_use]
 extern crate alloc;
@@ -34,6 +34,15 @@ const HUNDRED: u128 = 100;
 const YEAR_IN_SECONDS: u128 = 31536000; // 365 days
 
 const USD_DECIMALS: u32 = 8;
+
+// pub fn init_heap() {
+//     let heap_start = 0;
+//     let heap_end = 2 * 1024;
+//     let heap_size = heap_end - heap_start;
+//     unsafe {
+//         ALLOCATOR.lock().init(heap_start as *mut u8, heap_size);
+//     }
+// }
 
 pub trait DecimalExt {
     fn to_u128_with_decimals(&self, decimals: u32) -> Result<u128, rust_decimal::Error>;
@@ -59,8 +68,12 @@ impl DecimalExt for Decimal {
 
 fn get_available_liquidity_by_token(env: Env, denom: Symbol) -> u128 {
     let contract_address = env.current_contract_address();
-
-    10_000_000_u128
+    let token_info: TokenInfo = env
+        .storage()
+        .persistent()
+        .get(&DataKey::SUPPORTED_TOKENS(denom.clone()))
+        .unwrap();
+    token_balance(&env, &token_info.address, &contract_address) as u128
 }
 
 fn get_total_borrow_data(env: Env, denom: Symbol) -> TotalBorrowData {
@@ -215,6 +228,17 @@ fn get_mm_token_price(env: Env, denom: Symbol) -> u128 {
     // u128::try_from(mm_token_price).unwrap()
 }
 
+fn move_token(env: &Env, token: &Address, from: &Address, to: &Address, transfer_amount: i128) {
+    // new token interface
+    let token_client = token::Client::new(&env, &token);
+    token_client.transfer(&from, to, &transfer_amount);
+}
+
+fn token_balance(env: &Env, token: &Address, user_address: &Address) -> i128 {
+    let token_client = token::Client::new(&env, &token);
+    token_client.balance(&user_address)
+}
+
 #[contract]
 pub struct LendingContract;
 
@@ -257,8 +281,8 @@ impl LendingContract {
     pub fn AddMarkets(
         env: Env,
         denom: Symbol,
+        address: Address,
         name: Symbol,
-        symbol: Symbol,
         decimals: u32,
         loan_to_value_ratio: u128,
         liquidation_threshold: u128,
@@ -267,6 +291,7 @@ impl LendingContract {
         rate_growth_factor: u128,
         optimal_utilization_ratio: u128,
     ) {
+
         // assert!(
         //     !SUPPORTED_TOKENS.has(deps.storage, denom.clone()),
         //     "There already exists such a supported token"
@@ -274,8 +299,9 @@ impl LendingContract {
 
         let token_info: TokenInfo = TokenInfo {
             denom: denom.clone(),
+            address,
             name,
-            symbol,
+            symbol: denom.clone(),
             decimals,
         };
         env.storage()
@@ -328,3 +354,4 @@ impl LendingContract {
         );
     }
 }
+mod test;
