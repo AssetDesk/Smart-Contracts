@@ -15,6 +15,7 @@ pub enum DataKey {
 #[derive(Clone, Debug)]
 pub struct TokenInfo {
     pub denom: Symbol,
+    pub address: Address,
     pub name: Symbol,
     pub symbol: Symbol,
     pub decimals: u32,
