@@ -66,6 +66,37 @@ impl DecimalExt for Decimal {
     }
 }
 
+fn get_deposit(
+    env: Env,
+    user: Address,
+    denom: Symbol,
+) -> u128 {
+    // calculates user deposit including deposit interest
+    let token_decimals = get_token_decimal(env.clone(), denom.clone());
+
+    let user_mm_token_balance: u128 = env
+        .storage()
+        .persistent()
+        .get(&DataKey::USER_MM_TOKEN_BALANCE(
+            user.clone(),
+            denom.clone(),
+        ))
+        .unwrap_or(0_u128);
+
+    let mm_token_price = get_mm_token_price(env.clone(), denom.clone());
+
+    let user_token_balance =
+        Decimal::from_i128_with_scale(user_mm_token_balance as i128, token_decimals)
+            .mul(Decimal::from_i128_with_scale(
+                mm_token_price as i128,
+                token_decimals,
+            ))
+            .to_u128_with_decimals(token_decimals)
+            .unwrap();
+
+    user_token_balance
+}
+
 fn get_available_liquidity_by_token(env: Env, denom: Symbol) -> u128 {
     let contract_address = env.current_contract_address();
     let token_info: TokenInfo = env
@@ -92,6 +123,15 @@ pub fn get_token_decimal(env: Env, denom: Symbol) -> u32 {
         .get(&DataKey::SUPPORTED_TOKENS(denom.clone()))
         .unwrap();
     token_info.decimals
+}
+
+pub fn get_token_address(env: Env, denom: Symbol) -> Address {
+    let token_info: TokenInfo = env
+        .storage()
+        .persistent()
+        .get(&DataKey::SUPPORTED_TOKENS(denom.clone()))
+        .unwrap();
+    token_info.address
 }
 
 fn get_total_borrowed_by_token(env: Env, denom: Symbol) -> u128 {
@@ -228,6 +268,14 @@ fn get_mm_token_price(env: Env, denom: Symbol) -> u128 {
     // u128::try_from(mm_token_price).unwrap()
 }
 
+fn user_deposit_as_collateral(env: Env, user: Address, denom: Symbol) -> bool {
+    let use_user_deposit_as_collateral: bool =  env.storage().persistent().get(
+        &DataKey::USER_DEPOSIT_AS_COLLATERAL(user.clone(), denom.clone())
+    ).unwrap_or(false);
+
+    use_user_deposit_as_collateral
+}
+
 fn move_token(env: &Env, token: &Address, from: &Address, to: &Address, transfer_amount: i128) {
     // new token interface
     let token_client = token::Client::new(&env, &token);
@@ -239,12 +287,19 @@ fn token_balance(env: &Env, token: &Address, user_address: &Address) -> i128 {
     token_client.balance(&user_address)
 }
 
+
 #[contract]
 pub struct LendingContract;
 
 #[contractimpl]
 impl LendingContract {
     pub fn deposit(env: Env, user_address: Address, denom: Symbol, deposited_token_amount: u128) {
+
+        
+        user_address.require_auth();
+
+        let token_address: Address = get_token_address(env.clone(), denom.clone());
+        move_token(&env, &token_address, &user_address, &env.current_contract_address(), (deposited_token_amount.clone() as i128));
 
         execute_update_liquidity_index_data(env.clone(), denom.clone());
 
@@ -352,6 +407,87 @@ impl LendingContract {
             &DataKey::LIQUIDITY_INDEX_DATA(denom.clone()),
             &liquidity_index_data,
         );
+    }
+
+    pub fn UpdatePrice(env: Env, denom: Symbol, price: u128) {
+        // TODO
+        // Admin only
+        env.storage().persistent().set(
+            &DataKey::PRICES(denom.clone()),
+            &price,
+        );
+    }
+
+    pub fn ToggleCollateralSetting(env: Env, user_address: Address, denom: Symbol ) {
+
+        user_address.require_auth();
+
+        let use_user_deposit_as_collateral =
+            user_deposit_as_collateral(env.clone(), user_address.clone(), denom.clone());
+
+        // if use_user_deposit_as_collateral {
+        //     let user_token_balance = get_deposit(
+        //         deps.as_ref(),
+        //         env.clone(),
+        //         info.sender.to_string(),
+        //         denom.clone(),
+        //     )
+        //         .unwrap()
+        //         .balance
+        //         .u128();
+
+        //     if user_token_balance != 0 {
+        //         let token_decimals = get_token_decimal(deps.as_ref(), denom.clone())
+        //             .unwrap()
+        //             .u128() as u32;
+
+        //         let price = fetch_price_by_token(deps.as_ref(), env.clone(), denom.clone())
+        //             .unwrap()
+        //             .u128();
+
+        //         let user_token_balance_usd =
+        //             Decimal::from_i128_with_scale(user_token_balance as i128, token_decimals)
+        //                 .mul(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
+        //                 .to_u128_with_decimals(USD_DECIMALS)
+        //                 .unwrap();
+
+        //         let sum_collateral_balance_usd = get_user_collateral_usd(
+        //             deps.as_ref(),
+        //             env.clone(),
+        //             info.sender.to_string(),
+        //         )
+        //             .unwrap()
+        //             .u128();
+
+        //         let sum_borrow_balance_usd =
+        //             get_user_borrowed_usd(deps.as_ref(), env.clone(), info.sender.to_string())
+        //                 .unwrap()
+        //                 .u128();
+
+        //         let user_liquidation_threshold = get_user_liquidation_threshold(
+        //             deps.as_ref(),
+        //             env.clone(),
+        //             info.sender.to_string(),
+        //         )
+        //             .unwrap()
+        //             .u128();
+
+        //         assert!(
+        //             sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold < sum_collateral_balance_usd - user_token_balance_usd,
+        //             "The collateral has already using to collateralise the borrowing. Not enough available balance"
+        //         );
+        //     }
+        // }
+
+        env.storage().persistent().set(
+            &DataKey::USER_DEPOSIT_AS_COLLATERAL(user_address.clone(), denom.clone()),
+            &!use_user_deposit_as_collateral,
+        );
+
+    }
+
+    pub fn GetDeposit(env: Env, user: Address, denom: Symbol) -> u128 {
+        get_deposit(env.clone(), user, denom)
     }
 }
 mod test;
