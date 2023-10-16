@@ -1,16 +1,26 @@
 use soroban_sdk::{contracttype, Address, Symbol};
 
+pub(crate) const DAY_IN_LEDGERS: u32 = 17280;
+pub(crate) const WEEK_BUMP_AMOUNT: u32 = 7 * DAY_IN_LEDGERS;
+pub(crate) const WEEK_LIFETIME_THRESHOLD: u32 = WEEK_BUMP_AMOUNT - DAY_IN_LEDGERS;
+
+pub(crate) const MONTH_BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
+pub(crate) const MONTH_LIFETIME_THRESHOLD: u32 = MONTH_BUMP_AMOUNT - DAY_IN_LEDGERS;
+
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
+    Admin, // Address of the Contract admin account
     TOTAL_BORROW_DATA(Symbol),                // TotalBorrowData per denom
     SUPPORTED_TOKENS(Symbol),                 // TokenInfo denom data
+    SUPPORTED_TOKENS_LIST,                    // List of supported tokens
     LIQUIDITY_INDEX_DATA(Symbol),             // LiquidityIndexData per denom
     USER_MM_TOKEN_BALANCE(Address, Symbol),   // user mm token balance per denom
     RESERVE_CONFIGURATION(Symbol),            // ReserveConfiguration per denom
     TOKENS_INTEREST_RATE_MODEL_PARAM(Symbol), // TokenInterestRateModelParams per denom
     PRICES(Symbol),                           // price for denom
     USER_DEPOSIT_AS_COLLATERAL(Address, Symbol), // bool
+    USER_BORROWING_INFO(Address, Symbol),         // UserBorrowingInfo per denom
 }
 
 #[contracttype]
@@ -39,6 +49,25 @@ pub struct TotalBorrowData {
     pub expected_annual_interest_income: u128,
     pub average_interest_rate: u128,
     pub timestamp: u64,
+}
+
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct UserBorrowingInfo {
+    pub borrowed_amount: u128,
+    pub average_interest_rate: u128,
+    pub timestamp: u64,
+}
+
+impl Default for UserBorrowingInfo {
+    fn default() -> Self {
+        UserBorrowingInfo {
+            borrowed_amount: 0_u128,
+            average_interest_rate: 0_u128,
+            timestamp: 0_u64,
+        }
+    }
 }
 
 #[contracttype]
