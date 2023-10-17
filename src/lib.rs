@@ -385,6 +385,26 @@ pub fn fetch_price_by_token(env: Env, denom: Symbol) -> u128 {
     env.storage().persistent().get(&DataKey::PRICES(denom.clone())).unwrap_or(0_u128)
     }
 
+pub fn get_user_deposited_usd(env: Env, user: Address) -> u128 {
+    let mut user_deposited_usd = 0u128;
+
+    for token in get_supported_tokens(env.clone()) {
+        let user_deposit: u128 = get_deposit(env.clone(), user.clone(), token.clone());
+
+        let token_decimals: u32 = get_token_decimal(env.clone(), token.clone());
+
+        let price =  fetch_price_by_token( env.clone(), token.clone());
+
+        user_deposited_usd +=
+            Decimal::from_i128_with_scale(user_deposit as i128, token_decimals)
+                .mul(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
+                .to_u128_with_decimals(USD_DECIMALS)
+                .unwrap();
+    }
+
+    user_deposited_usd
+}
+    
 pub fn get_user_collateral_usd(env: Env, user: Address) -> u128 {
     let mut user_collateral_usd = 0_u128;
 
@@ -860,15 +880,23 @@ impl LendingContract {
     }
 
     pub fn GetDeposit(env: Env, user: Address, denom: Symbol) -> u128 {
-        get_deposit(env.clone(), user, denom)
+        get_deposit(env, user, denom)
     }
 
     pub fn GetTotalBorrowData(env: Env, denom: Symbol) -> TotalBorrowData {
-        get_total_borrow_data(env.clone(), denom)
+        get_total_borrow_data(env, denom)
     }
 
     pub fn GetTotalReservesByToken (env: Env, denom: Symbol) -> u128 {
-        get_total_reserves_by_token(env.clone(), denom)
+        get_total_reserves_by_token(env, denom)
+    }
+    
+    pub fn GetUserDepositedUsd  (env: Env, user: Address) -> u128 {
+        get_user_deposited_usd(env, user)
+    }
+
+    pub fn GetMmTokenPrice  (env: Env, denom: Symbol) -> u128 {
+        get_mm_token_price(env, denom)
     }
 }
 
