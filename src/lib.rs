@@ -7,7 +7,7 @@
 
 use crate::types::{
     DataKey, LiquidityIndexData, ReserveConfiguration, TokenInfo, TokenInterestRateModelParams,
-    TotalBorrowData, UserBorrowingInfo, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT,
+    TotalBorrowData, UserBorrowingInfo, MONTH_BUMP_AMOUNT, MONTH_LIFETIME_THRESHOLD,
 };
 
 use soroban_sdk::{
@@ -81,21 +81,14 @@ fn write_administrator(e: &Env, id: &Address) {
         .bump(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
 }
 
-fn get_deposit(
-    env: Env,
-    user: Address,
-    denom: Symbol,
-) -> u128 {
+fn get_deposit(env: Env, user: Address, denom: Symbol) -> u128 {
     // calculates user deposit including deposit interest
     let token_decimals = get_token_decimal(env.clone(), denom.clone());
 
     let user_mm_token_balance: u128 = env
         .storage()
         .persistent()
-        .get(&DataKey::USER_MM_TOKEN_BALANCE(
-            user.clone(),
-            denom.clone(),
-        ))
+        .get(&DataKey::USER_MM_TOKEN_BALANCE(user.clone(), denom.clone()))
         .unwrap_or(0_u128);
 
     let mm_token_price = get_mm_token_price(env.clone(), denom.clone());
@@ -132,7 +125,6 @@ fn get_total_borrow_data(env: Env, denom: Symbol) -> TotalBorrowData {
 }
 
 pub fn get_interest_rate(env: Env, denom: Symbol) -> u128 {
-
     let utilization_rate = get_utilization_rate_by_token(env.clone(), denom.clone());
 
     let token_interest: TokenInterestRateModelParams = env
@@ -147,12 +139,12 @@ pub fn get_interest_rate(env: Env, denom: Symbol) -> u128 {
     let optimal_utilization_ratio: u128 = token_interest.optimal_utilization_ratio;
 
     if utilization_rate <= optimal_utilization_ratio {
-            min_interest_rate
-                + utilization_rate * (safe_borrow_max_rate - min_interest_rate)
+        min_interest_rate
+            + utilization_rate * (safe_borrow_max_rate - min_interest_rate)
                 / optimal_utilization_ratio
     } else {
-            safe_borrow_max_rate
-                + rate_growth_factor * (utilization_rate - optimal_utilization_ratio)
+        safe_borrow_max_rate
+            + rate_growth_factor * (utilization_rate - optimal_utilization_ratio)
                 / (HUNDRED_PERCENT - optimal_utilization_ratio)
     }
 }
@@ -197,13 +189,13 @@ fn get_total_borrowed_by_token(env: Env, denom: Symbol) -> u128 {
     total_borrowed_amount_with_interest
 }
 
-pub fn get_utilization_rate_by_token( env: Env, denom: Symbol) -> u128 {
+pub fn get_utilization_rate_by_token(env: Env, denom: Symbol) -> u128 {
     let reserves_by_token = get_total_reserves_by_token(env.clone(), denom.clone());
 
     if reserves_by_token != 0 {
         let borrowed_by_token = get_total_borrowed_by_token(env, denom.clone());
 
-            borrowed_by_token * HUNDRED_PERCENT / reserves_by_token
+        borrowed_by_token * HUNDRED_PERCENT / reserves_by_token
     } else {
         0_u128
     }
@@ -234,12 +226,9 @@ pub fn calc_borrow_amount_with_interest(
     borrow_amount_with_interest
 }
 
-fn get_user_borrowing_info(
-    env: Env,
-    user: Address,
-    denom: Symbol,
-) -> UserBorrowingInfo {
-    let user_borrowing_info: UserBorrowingInfo = env.storage()
+fn get_user_borrowing_info(env: Env, user: Address, denom: Symbol) -> UserBorrowingInfo {
+    let user_borrowing_info: UserBorrowingInfo = env
+        .storage()
         .persistent()
         .get(&DataKey::USER_BORROWING_INFO(user.clone(), denom.clone()))
         .unwrap_or_default();
@@ -260,11 +249,7 @@ fn get_user_borrowing_info(
     }
 }
 
-pub fn get_user_borrow_amount_with_interest(
-    env: Env,
-    user: Address,
-    denom: Symbol,
-) -> u128 {
+pub fn get_user_borrow_amount_with_interest(env: Env, user: Address, denom: Symbol) -> u128 {
     let current_borrowing_info = get_user_borrowing_info(env.clone(), user.clone(), denom.clone());
 
     let token_decimals = get_token_decimal(env.clone(), denom.clone());
@@ -374,16 +359,24 @@ fn get_mm_token_price(env: Env, denom: Symbol) -> u128 {
 }
 
 fn user_deposit_as_collateral(env: Env, user: Address, denom: Symbol) -> bool {
-    let use_user_deposit_as_collateral: bool =  env.storage().persistent().get(
-        &DataKey::USER_DEPOSIT_AS_COLLATERAL(user.clone(), denom.clone())
-    ).unwrap_or(false);
+    let use_user_deposit_as_collateral: bool = env
+        .storage()
+        .persistent()
+        .get(&DataKey::USER_DEPOSIT_AS_COLLATERAL(
+            user.clone(),
+            denom.clone(),
+        ))
+        .unwrap_or(false);
 
     use_user_deposit_as_collateral
 }
 
 pub fn fetch_price_by_token(env: Env, denom: Symbol) -> u128 {
-    env.storage().persistent().get(&DataKey::PRICES(denom.clone())).unwrap_or(0_u128)
-    }
+    env.storage()
+        .persistent()
+        .get(&DataKey::PRICES(denom.clone()))
+        .unwrap_or(0_u128)
+}
 
 pub fn get_user_deposited_usd(env: Env, user: Address) -> u128 {
     let mut user_deposited_usd = 0u128;
@@ -393,18 +386,17 @@ pub fn get_user_deposited_usd(env: Env, user: Address) -> u128 {
 
         let token_decimals: u32 = get_token_decimal(env.clone(), token.clone());
 
-        let price =  fetch_price_by_token( env.clone(), token.clone());
+        let price = fetch_price_by_token(env.clone(), token.clone());
 
-        user_deposited_usd +=
-            Decimal::from_i128_with_scale(user_deposit as i128, token_decimals)
-                .mul(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
-                .to_u128_with_decimals(USD_DECIMALS)
-                .unwrap();
+        user_deposited_usd += Decimal::from_i128_with_scale(user_deposit as i128, token_decimals)
+            .mul(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
+            .to_u128_with_decimals(USD_DECIMALS)
+            .unwrap();
     }
 
     user_deposited_usd
 }
-    
+
 pub fn get_user_collateral_usd(env: Env, user: Address) -> u128 {
     let mut user_collateral_usd = 0_u128;
 
@@ -413,7 +405,7 @@ pub fn get_user_collateral_usd(env: Env, user: Address) -> u128 {
             user_deposit_as_collateral(env.clone(), user.clone(), token.clone());
 
         if use_user_deposit_as_collateral {
-            let user_deposit = get_deposit(env.clone(),  user.clone(), token.clone());
+            let user_deposit = get_deposit(env.clone(), user.clone(), token.clone());
 
             let token_decimals = get_token_decimal(env.clone(), token.clone());
 
@@ -433,32 +425,24 @@ pub fn get_user_collateral_usd(env: Env, user: Address) -> u128 {
 pub fn get_user_borrowed_usd(env: Env, user: Address) -> u128 {
     let mut user_borrowed_usd: u128 = 0_u128;
     for token in get_supported_tokens(env.clone()) {
-        let user_borrow_amount_with_interest = get_user_borrow_amount_with_interest(
-            env.clone(),
-            user.clone(),
-            token.clone(),
-        );
+        let user_borrow_amount_with_interest =
+            get_user_borrow_amount_with_interest(env.clone(), user.clone(), token.clone());
 
         let token_decimals = get_token_decimal(env.clone(), token.clone());
 
         let price = fetch_price_by_token(env.clone(), token.clone());
 
-        user_borrowed_usd += Decimal::from_i128_with_scale(
-            user_borrow_amount_with_interest as i128,
-            token_decimals,
-        )
-            .mul(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
-            .to_u128_with_decimals(USD_DECIMALS)
-            .unwrap()
+        user_borrowed_usd +=
+            Decimal::from_i128_with_scale(user_borrow_amount_with_interest as i128, token_decimals)
+                .mul(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
+                .to_u128_with_decimals(USD_DECIMALS)
+                .unwrap()
     }
 
     user_borrowed_usd
 }
 
-pub fn get_user_max_allowed_borrow_amount_usd(
-    env: Env,
-    user: Address,
-) -> u128 {
+pub fn get_user_max_allowed_borrow_amount_usd(env: Env, user: Address) -> u128 {
     // the maximum amount in USD that a user can borrow
     let mut max_allowed_borrow_amount_usd = 0u128;
 
@@ -467,12 +451,13 @@ pub fn get_user_max_allowed_borrow_amount_usd(
             user_deposit_as_collateral(env.clone(), user.clone(), token.clone());
 
         if use_user_deposit_as_collateral {
-            let user_deposit =
-                get_deposit(env.clone(), user.clone(), token.clone());
+            let user_deposit = get_deposit(env.clone(), user.clone(), token.clone());
 
-            let reserve_configuration: ReserveConfiguration = env.storage().persistent().get(
-                &DataKey::RESERVE_CONFIGURATION(token.clone())
-            ).unwrap();
+            let reserve_configuration: ReserveConfiguration = env
+                .storage()
+                .persistent()
+                .get(&DataKey::RESERVE_CONFIGURATION(token.clone()))
+                .unwrap();
 
             let loan_to_value_ratio = reserve_configuration.loan_to_value_ratio;
 
@@ -494,21 +479,17 @@ pub fn get_user_max_allowed_borrow_amount_usd(
     max_allowed_borrow_amount_usd
 }
 
-pub fn get_available_to_borrow(
-    env: Env,
-    user: Address,
-    denom: Symbol,
-) -> u128 {
+pub fn get_available_to_borrow(env: Env, user: Address, denom: Symbol) -> u128 {
     let mut available_to_borrow = 0u128;
 
     // maximum amount allowed for borrowing
     let max_allowed_borrow_amount_usd =
         get_user_max_allowed_borrow_amount_usd(env.clone(), user.clone());
 
-    let sum_user_borrow_balance_usd = get_user_borrowed_usd( env.clone(), user.clone());
+    let sum_user_borrow_balance_usd = get_user_borrowed_usd(env.clone(), user.clone());
 
     if max_allowed_borrow_amount_usd > sum_user_borrow_balance_usd {
-        let token_decimals = get_token_decimal( env.clone(), denom.clone());
+        let token_decimals = get_token_decimal(env.clone(), denom.clone());
 
         let price = fetch_price_by_token(env.clone(), denom.clone());
 
@@ -516,12 +497,11 @@ pub fn get_available_to_borrow(
             (max_allowed_borrow_amount_usd - sum_user_borrow_balance_usd) as i128,
             USD_DECIMALS,
         )
-            .div(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
-            .to_u128_with_decimals(token_decimals)
-            .unwrap();
+        .div(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
+        .to_u128_with_decimals(token_decimals)
+        .unwrap();
 
-        let token_liquidity =
-            get_available_liquidity_by_token(env.clone(), denom.clone());
+        let token_liquidity = get_available_liquidity_by_token(env.clone(), denom.clone());
 
         if available_to_borrow > token_liquidity {
             available_to_borrow = token_liquidity
@@ -542,13 +522,11 @@ fn token_balance(env: &Env, token: &Address, user_address: &Address) -> i128 {
     token_client.balance(&user_address)
 }
 
-
 #[contract]
 pub struct LendingContract;
 
 #[contractimpl]
 impl LendingContract {
-
     pub fn initialize(e: Env, admin: Address) {
         if has_administrator(&e) {
             panic!("already initialized")
@@ -557,12 +535,16 @@ impl LendingContract {
     }
 
     pub fn deposit(env: Env, user_address: Address, denom: Symbol, deposited_token_amount: u128) {
-
-        
         user_address.require_auth();
 
         let token_address: Address = get_token_address(env.clone(), denom.clone());
-        move_token(&env, &token_address, &user_address, &env.current_contract_address(), deposited_token_amount.clone() as i128);
+        move_token(
+            &env,
+            &token_address,
+            &user_address,
+            &env.current_contract_address(),
+            deposited_token_amount.clone() as i128,
+        );
 
         execute_update_liquidity_index_data(env.clone(), denom.clone());
 
@@ -609,7 +591,6 @@ impl LendingContract {
         rate_growth_factor: u128,
         optimal_utilization_ratio: u128,
     ) {
-
         let mut supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
         // TODO
         // assert!(
@@ -681,14 +662,12 @@ impl LendingContract {
     pub fn UpdatePrice(env: Env, denom: Symbol, price: u128) {
         // TODO
         // Admin only
-        env.storage().persistent().set(
-            &DataKey::PRICES(denom.clone()),
-            &price,
-        );
+        env.storage()
+            .persistent()
+            .set(&DataKey::PRICES(denom.clone()), &price);
     }
 
-    pub fn ToggleCollateralSetting(env: Env, user: Address, denom: Symbol ) {
-
+    pub fn ToggleCollateralSetting(env: Env, user: Address, denom: Symbol) {
         user.require_auth();
 
         let use_user_deposit_as_collateral =
@@ -700,7 +679,7 @@ impl LendingContract {
             if user_token_balance != 0 {
                 let token_decimals = get_token_decimal(env.clone(), denom.clone());
 
-                let price = fetch_price_by_token( env.clone(), denom.clone());
+                let price = fetch_price_by_token(env.clone(), denom.clone());
 
                 let user_token_balance_usd =
                     Decimal::from_i128_with_scale(user_token_balance as i128, token_decimals)
@@ -712,18 +691,18 @@ impl LendingContract {
 
                 let sum_borrow_balance_usd = get_user_borrowed_usd(env.clone(), user.clone());
 
-        //         let user_liquidation_threshold = get_user_liquidation_threshold(
-        //             deps.as_ref(),
-        //             env.clone(),
-        //             info.sender.to_string(),
-        //         )
-        //             .unwrap()
-        //             .u128();
+                //         let user_liquidation_threshold = get_user_liquidation_threshold(
+                //             deps.as_ref(),
+                //             env.clone(),
+                //             info.sender.to_string(),
+                //         )
+                //             .unwrap()
+                //             .u128();
 
-        //         assert!(
-        //             sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold < sum_collateral_balance_usd - user_token_balance_usd,
-        //             "The collateral has already using to collateralise the borrowing. Not enough available balance"
-        //         );
+                //         assert!(
+                //             sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold < sum_collateral_balance_usd - user_token_balance_usd,
+                //             "The collateral has already using to collateralise the borrowing. Not enough available balance"
+                //         );
             }
         }
 
@@ -731,56 +710,45 @@ impl LendingContract {
             &DataKey::USER_DEPOSIT_AS_COLLATERAL(user.clone(), denom.clone()),
             &!use_user_deposit_as_collateral,
         );
-
     }
 
     pub fn Borrow(env: Env, user: Address, denom: Symbol, amount: u128) {
         user.require_auth();
 
         // TODO
-    //     assert_ne!(
-    //         info.sender.to_string(),
-    //         LIQUIDATOR.load(deps.storage).unwrap(),
-    //         "The liquidator cannot borrow"
-    //     );
+        //     assert_ne!(
+        //         info.sender.to_string(),
+        //         LIQUIDATOR.load(deps.storage).unwrap(),
+        //         "The liquidator cannot borrow"
+        //     );
 
-    //     assert!(
-    //         SUPPORTED_TOKENS.has(deps.storage, denom.clone()),
-    //         "There is no such supported token yet"
-    //     );
+        //     assert!(
+        //         SUPPORTED_TOKENS.has(deps.storage, denom.clone()),
+        //         "There is no such supported token yet"
+        //     );
 
+        let available_to_borrow_amount: u128 =
+            get_available_to_borrow(env.clone(), user.clone(), denom.clone());
 
-        let available_to_borrow_amount: u128 = get_available_to_borrow(
-            env.clone(),
-            user.clone(),
-            denom.clone(),
-        );
+        //     assert!(
+        //         available_to_borrow_amount >= amount.u128(),
+        //         "The amount to be borrowed is not available"
+        //     );
 
-    //     assert!(
-    //         available_to_borrow_amount >= amount.u128(),
-    //         "The amount to be borrowed is not available"
-    //     );
-
-    //     assert!(
-    //         get_available_liquidity_by_token(deps.as_ref(), env.clone(), denom.clone())
-    //             .unwrap()
-    //             .u128()
-    //             >= amount.u128()
-    //     );
+        //     assert!(
+        //         get_available_liquidity_by_token(deps.as_ref(), env.clone(), denom.clone())
+        //             .unwrap()
+        //             .u128()
+        //             >= amount.u128()
+        //     );
 
         execute_update_liquidity_index_data(env.clone(), denom.clone());
 
-        let user_borrow_amount_with_interest: u128 = get_user_borrow_amount_with_interest(
-            env.clone(),
-            user.clone(),
-            denom.clone(),
-        );
+        let user_borrow_amount_with_interest: u128 =
+            get_user_borrow_amount_with_interest(env.clone(), user.clone(), denom.clone());
 
-        let user_borrowing_info: UserBorrowingInfo = get_user_borrowing_info(
-            env.clone(), 
-            user.clone(),
-            denom.clone(),
-        );
+        let user_borrowing_info: UserBorrowingInfo =
+            get_user_borrowing_info(env.clone(), user.clone(), denom.clone());
 
         let new_user_borrow_amount: u128 = user_borrow_amount_with_interest + amount;
 
@@ -792,24 +760,24 @@ impl LendingContract {
             user_borrow_amount_with_interest as i128,
             borrowed_token_decimals,
         )
-            .mul(Decimal::from_i128_with_scale(
-                user_borrowing_info.average_interest_rate as i128,
-                INTEREST_RATE_DECIMALS,
-            ))
-            .add(
-                Decimal::from_i128_with_scale(amount as i128, borrowed_token_decimals).mul(
-                    Decimal::from_i128_with_scale(
-                        current_interest_rate as i128,
-                        INTEREST_RATE_DECIMALS,
-                    ),
+        .mul(Decimal::from_i128_with_scale(
+            user_borrowing_info.average_interest_rate as i128,
+            INTEREST_RATE_DECIMALS,
+        ))
+        .add(
+            Decimal::from_i128_with_scale(amount as i128, borrowed_token_decimals).mul(
+                Decimal::from_i128_with_scale(
+                    current_interest_rate as i128,
+                    INTEREST_RATE_DECIMALS,
                 ),
-            ))
-            .div(Decimal::from_i128_with_scale(
-                new_user_borrow_amount as i128,
-                borrowed_token_decimals,
-            ))
-            .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
-            .unwrap();
+            ),
+        ))
+        .div(Decimal::from_i128_with_scale(
+            new_user_borrow_amount as i128,
+            borrowed_token_decimals,
+        ))
+        .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
+        .unwrap();
 
         // updating user borrowing info
         let new_user_borrowing_info: UserBorrowingInfo = UserBorrowingInfo {
@@ -820,11 +788,12 @@ impl LendingContract {
 
         let total_borrow_data: TotalBorrowData = get_total_borrow_data(env.clone(), denom.clone());
 
-        let expected_annual_interest_income: u128 = total_borrow_data.expected_annual_interest_income
+        let expected_annual_interest_income: u128 = total_borrow_data
+            .expected_annual_interest_income
             - Decimal::from_i128_with_scale(
-            user_borrowing_info.borrowed_amount as i128,
-            borrowed_token_decimals,
-        )
+                user_borrowing_info.borrowed_amount as i128,
+                borrowed_token_decimals,
+            )
             .mul(Decimal::from_i128_with_scale(
                 (user_borrowing_info.average_interest_rate / HUNDRED) as i128,
                 INTEREST_RATE_DECIMALS,
@@ -832,9 +801,9 @@ impl LendingContract {
             .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
             .unwrap()
             + Decimal::from_i128_with_scale(
-            new_user_borrow_amount as i128,
-            borrowed_token_decimals,
-        )
+                new_user_borrow_amount as i128,
+                borrowed_token_decimals,
+            )
             .mul(Decimal::from_i128_with_scale(
                 (average_interest_rate / HUNDRED) as i128,
                 INTEREST_RATE_DECIMALS,
@@ -848,9 +817,9 @@ impl LendingContract {
 
         let total_average_interest_rate = HUNDRED
             * Decimal::from_i128_with_scale(
-            expected_annual_interest_income as i128,
-            INTEREST_RATE_DECIMALS,
-        )
+                expected_annual_interest_income as i128,
+                INTEREST_RATE_DECIMALS,
+            )
             .div(Decimal::from_i128_with_scale(
                 total_borrowed_amount as i128,
                 borrowed_token_decimals,
@@ -866,17 +835,23 @@ impl LendingContract {
             timestamp: env.ledger().timestamp(),
         };
 
-        env.storage()
-            .persistent()
-            .set(&DataKey::USER_BORROWING_INFO(user.clone(), denom.clone()), &new_user_borrowing_info);
+        env.storage().persistent().set(
+            &DataKey::USER_BORROWING_INFO(user.clone(), denom.clone()),
+            &new_user_borrowing_info,
+        );
 
         env.storage().persistent().set(
             &DataKey::TOTAL_BORROW_DATA(denom.clone()),
             &new_total_borrow_data,
         );
 
-        move_token(&env, &get_token_address(env.clone(), denom.clone()), &env.current_contract_address(), &user, amount as i128)
-
+        move_token(
+            &env,
+            &get_token_address(env.clone(), denom.clone()),
+            &env.current_contract_address(),
+            &user,
+            amount as i128,
+        )
     }
 
     pub fn GetDeposit(env: Env, user: Address, denom: Symbol) -> u128 {
@@ -887,15 +862,15 @@ impl LendingContract {
         get_total_borrow_data(env, denom)
     }
 
-    pub fn GetTotalReservesByToken (env: Env, denom: Symbol) -> u128 {
+    pub fn GetTotalReservesByToken(env: Env, denom: Symbol) -> u128 {
         get_total_reserves_by_token(env, denom)
     }
-    
-    pub fn GetUserDepositedUsd  (env: Env, user: Address) -> u128 {
+
+    pub fn GetUserDepositedUsd(env: Env, user: Address) -> u128 {
         get_user_deposited_usd(env, user)
     }
 
-    pub fn GetMmTokenPrice  (env: Env, denom: Symbol) -> u128 {
+    pub fn GetMmTokenPrice(env: Env, denom: Symbol) -> u128 {
         get_mm_token_price(env, denom)
     }
 }

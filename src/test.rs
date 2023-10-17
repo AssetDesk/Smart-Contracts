@@ -12,19 +12,26 @@ use token::Client as TokenClient;
 use token::StellarAssetClient as TokenAdminClient;
 
 mod token_contract {
-    soroban_sdk::contractimport!(
-        file =
-            "./token/soroban_token_contract.optimized.wasm"
-    );
+    soroban_sdk::contractimport!(file = "./token/soroban_token_contract.optimized.wasm");
 }
 
-fn create_custom_token<'a>(e: &Env, admin: &Address, name: &str, symbol: &str, decimals: &u32) -> token_contract::Client<'a> {
+fn create_custom_token<'a>(
+    e: &Env,
+    admin: &Address,
+    name: &str,
+    symbol: &str,
+    decimals: &u32,
+) -> token_contract::Client<'a> {
     let token_id = &e.register_contract_wasm(None, token_contract::WASM);
     let token = token_contract::Client::new(e, &token_id);
-    token.initialize(admin, decimals, &String::from_slice(&e, name), &String::from_slice(&e, symbol));
+    token.initialize(
+        admin,
+        decimals,
+        &String::from_slice(&e, name),
+        &String::from_slice(&e, symbol),
+    );
     token
 }
-
 
 pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, Address, Address) {
     const TOKENS_DECIMALS: u32 = 18;
@@ -68,7 +75,10 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
     // token_atom.mint(&admin, &i128::try_from(CONTRACT_RESERVES * 100).unwrap());
     token_eth.mint(&admin, &i128::try_from(CONTRACT_RESERVES).unwrap());
 
-    token_eth.mint(&liquidator, &i128::try_from(INIT_LIQUIDATOR_BALANCE_ETH).unwrap());
+    token_eth.mint(
+        &liquidator,
+        &i128::try_from(INIT_LIQUIDATOR_BALANCE_ETH).unwrap(),
+    );
 
     contract_client.AddMarkets(
         &symbol_short!("atom"),
@@ -98,7 +108,11 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
 
     // Funding contract
     // token_atom.transfer(&admin, &contract_address, &i128::try_from(CONTRACT_RESERVES).unwrap());
-    token_eth.transfer(&admin, &contract_address, &i128::try_from(CONTRACT_RESERVES).unwrap());
+    token_eth.transfer(
+        &admin,
+        &contract_address,
+        &i128::try_from(CONTRACT_RESERVES).unwrap(),
+    );
 
     // contract_client.UpdatePrice(&symbol_short!("atom"), &PRICE_ATOM);
     // contract_client.UpdatePrice(&symbol_short!("eth"), &PRICE_ETH);
@@ -109,20 +123,36 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
     // contract_client.ToggleCollateralSetting(&user1, &symbol_short!("eth"));
     // contract_client.ToggleCollateralSetting(&admin, &symbol_short!("eth"));
 
-    let mut user_deposited_balance: u128 = contract_client.GetDeposit(&user1, &symbol_short!("eth"));
+    let mut user_deposited_balance: u128 =
+        contract_client.GetDeposit(&user1, &symbol_short!("eth"));
 
     assert_eq!(user_deposited_balance, FIRST_DEPOSIT_AMOUNT_ETH);
-    assert_eq!(token_eth.balance(&user1), (INIT_USER_BALANCE - FIRST_DEPOSIT_AMOUNT_ETH) as i128);
-    assert_eq!(token_eth.balance(&contract_address), (CONTRACT_RESERVES + FIRST_DEPOSIT_AMOUNT_ETH) as i128);
+    assert_eq!(
+        token_eth.balance(&user1),
+        (INIT_USER_BALANCE - FIRST_DEPOSIT_AMOUNT_ETH) as i128
+    );
+    assert_eq!(
+        token_eth.balance(&contract_address),
+        (CONTRACT_RESERVES + FIRST_DEPOSIT_AMOUNT_ETH) as i128
+    );
 
     contract_client.deposit(&user1, &symbol_short!("eth"), &SECOND_DEPOSIT_AMOUNT_ETH);
     // contract_client.Borrow(&admin, &symbol_short!("eth"), &(SECOND_DEPOSIT_AMOUNT_ETH / 2));
 
     user_deposited_balance = contract_client.GetDeposit(&user1, &symbol_short!("eth"));
 
-    assert_eq!(user_deposited_balance, FIRST_DEPOSIT_AMOUNT_ETH + SECOND_DEPOSIT_AMOUNT_ETH);
-    assert_eq!(token_eth.balance(&user1), (INIT_USER_BALANCE - FIRST_DEPOSIT_AMOUNT_ETH - SECOND_DEPOSIT_AMOUNT_ETH) as i128);
-    assert_eq!(token_eth.balance(&contract_address), (CONTRACT_RESERVES + FIRST_DEPOSIT_AMOUNT_ETH + SECOND_DEPOSIT_AMOUNT_ETH) as i128);
+    assert_eq!(
+        user_deposited_balance,
+        FIRST_DEPOSIT_AMOUNT_ETH + SECOND_DEPOSIT_AMOUNT_ETH
+    );
+    assert_eq!(
+        token_eth.balance(&user1),
+        (INIT_USER_BALANCE - FIRST_DEPOSIT_AMOUNT_ETH - SECOND_DEPOSIT_AMOUNT_ETH) as i128
+    );
+    assert_eq!(
+        token_eth.balance(&contract_address),
+        (CONTRACT_RESERVES + FIRST_DEPOSIT_AMOUNT_ETH + SECOND_DEPOSIT_AMOUNT_ETH) as i128
+    );
 
     (contract_client, admin, user1)
 }
@@ -201,22 +231,38 @@ fn test_successful_deposits_of_one_token() {
     );
 
     // Funding contract
-    token_atom.transfer(&admin, &contract_address, &i128::try_from(CONTRACT_RESERVES / 100).unwrap());
-    token_eth.transfer(&admin, &contract_address, &i128::try_from(CONTRACT_RESERVES / 100).unwrap());
+    token_atom.transfer(
+        &admin,
+        &contract_address,
+        &i128::try_from(CONTRACT_RESERVES / 100).unwrap(),
+    );
+    token_eth.transfer(
+        &admin,
+        &contract_address,
+        &i128::try_from(CONTRACT_RESERVES / 100).unwrap(),
+    );
 
     contract_client.UpdatePrice(&symbol_short!("atom"), &PRICE_ATOM);
     contract_client.UpdatePrice(&symbol_short!("eth"), &PRICE_ETH);
 
     contract_client.deposit(&user1, &symbol_short!("eth"), &FIRST_DEPOSIT_AMOUNT);
-    contract_client.deposit(&admin, &symbol_short!("eth"), &(FIRST_DEPOSIT_AMOUNT * 15 / 10));
+    contract_client.deposit(
+        &admin,
+        &symbol_short!("eth"),
+        &(FIRST_DEPOSIT_AMOUNT * 15 / 10),
+    );
 
     contract_client.ToggleCollateralSetting(&user1, &symbol_short!("eth"));
     contract_client.ToggleCollateralSetting(&admin, &symbol_short!("eth"));
 
-    let mut user_deposited_balance: u128 = contract_client.GetDeposit(&user1, &symbol_short!("eth"));
+    let mut user_deposited_balance: u128 =
+        contract_client.GetDeposit(&user1, &symbol_short!("eth"));
 
     assert_eq!(user_deposited_balance, FIRST_DEPOSIT_AMOUNT);
-    assert_eq!(token_eth.balance(&user1), (INIT_USER_BALANCE - FIRST_DEPOSIT_AMOUNT) as i128);
+    assert_eq!(
+        token_eth.balance(&user1),
+        (INIT_USER_BALANCE - FIRST_DEPOSIT_AMOUNT) as i128
+    );
 
     contract_client.deposit(&user1, &symbol_short!("eth"), &SECOND_DEPOSIT_AMOUNT);
     contract_client.Borrow(&admin, &symbol_short!("eth"), &(SECOND_DEPOSIT_AMOUNT / 2));
@@ -238,47 +284,44 @@ fn test_successful_deposits_of_one_token() {
 
     println!("New timestamp: {:?}", env.ledger().timestamp());
 
-    let total_borrow_data: TotalBorrowData = contract_client.GetTotalBorrowData(&symbol_short!("eth"));
+    let total_borrow_data: TotalBorrowData =
+        contract_client.GetTotalBorrowData(&symbol_short!("eth"));
     println!("Total borrow data: {:?}", total_borrow_data);
 
     let reserves_by_token: u128 = contract_client.GetTotalReservesByToken(&symbol_short!("eth"));
     println!("Total Reserves for Eth : {:?}", reserves_by_token);
 
     user_deposited_balance = contract_client.GetDeposit(&user1, &symbol_short!("eth"));
-    println!("User initial deposit       : {:?}", FIRST_DEPOSIT_AMOUNT + SECOND_DEPOSIT_AMOUNT);
+    println!(
+        "User initial deposit       : {:?}",
+        FIRST_DEPOSIT_AMOUNT + SECOND_DEPOSIT_AMOUNT
+    );
     println!("User deposit after set time: {:?}", user_deposited_balance);
     assert!(user_deposited_balance > FIRST_DEPOSIT_AMOUNT + SECOND_DEPOSIT_AMOUNT);
-    assert_eq!(token_eth.balance(&user1), (INIT_USER_BALANCE - FIRST_DEPOSIT_AMOUNT - SECOND_DEPOSIT_AMOUNT) as i128);
-
+    assert_eq!(
+        token_eth.balance(&user1),
+        (INIT_USER_BALANCE - FIRST_DEPOSIT_AMOUNT - SECOND_DEPOSIT_AMOUNT) as i128
+    );
 }
-
 
 #[test]
 fn test_get_deposit() {
-    // having 500 deposited we want to redeem SECOND_DEPOSIT_AMOUNT
-    // so that FIRST_DEPOSIT_AMOUNT is remaining
     let (contract_client, admin, user) = success_deposit_of_one_token_setup();
 
-    let mut user_deposit_amount_eth: u128 = contract_client.GetDeposit(&user, &symbol_short!("eth"));
-    let mut user_deposit_amount_atom: u128 = contract_client.GetDeposit(&user, &symbol_short!("atom"));
+    let user_deposit_amount_eth: u128 = contract_client.GetDeposit(&user, &symbol_short!("eth"));
+    let user_deposit_amount_atom: u128 = contract_client.GetDeposit(&user, &symbol_short!("atom"));
 
     assert_eq!(user_deposit_amount_atom, 0); // 0
-    assert_eq!(
-        user_deposit_amount_eth,
-        500000000000000000000
-    ); // 500
+    assert_eq!(user_deposit_amount_eth, 500000000000000000000); // 500
 }
 
 #[test]
-    fn test_get_mm_token_price() {
-        // having 500 deposited we want to redeem SECOND_DEPOSIT_AMOUNT
-        // so that FIRST_DEPOSIT_AMOUNT is remaining
-        let (contract_client, admin, user) = success_deposit_of_one_token_setup();
+fn test_get_mm_token_price() {
+    let (contract_client, admin, user) = success_deposit_of_one_token_setup();
 
-        let get_mm_token_price_eth: u128 = contract_client.GetMmTokenPrice( &symbol_short!("eth"));
+    let get_mm_token_price_eth: u128 = contract_client.GetMmTokenPrice(&symbol_short!("eth"));
+    let get_mm_token_price_atom: u128 = contract_client.GetMmTokenPrice(&symbol_short!("atom"));
 
-        let get_mm_token_price_atom: u128 = contract_client.GetMmTokenPrice( &symbol_short!("atom"));
-
-        assert_eq!(get_mm_token_price_atom, 1000000000000000000); // 1:1
-        assert_eq!(get_mm_token_price_eth, 1000000000000000000); // 1:1
-    }
+    assert_eq!(get_mm_token_price_atom, 1000000000000000000); // 1:1
+    assert_eq!(get_mm_token_price_eth, 1000000000000000000); // 1:1
+}
