@@ -873,6 +873,22 @@ impl LendingContract {
     pub fn GetMmTokenPrice(env: Env, denom: Symbol) -> u128 {
         get_mm_token_price(env, denom)
     }
+
+    pub fn GetPrice(env: Env, denom: Symbol) -> u128 {
+        fetch_price_by_token(env, denom)
+    }
+
+    pub fn GetLiquidityRate(env: Env, denom: Symbol) -> u128 {
+        get_liquidity_rate(env, denom)
+    }
+
+    pub fn GetUserBorrowAmountWithInterest(env: Env, user: Address, denom: Symbol) -> u128 {
+        get_user_borrow_amount_with_interest(env, user, denom)
+    }
+
+    // pub fn GetAllUsersWithBorrows(env: Env) -> Vec<Address> {
+    //     get_all_users_with_borrows(env)
+    // }
 }
 
 mod test;
