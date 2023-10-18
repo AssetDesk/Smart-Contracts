@@ -567,6 +567,71 @@ fn test_get_user_borrow_amount_with_interest() {
 }
 
 #[test]
+fn test_success_borrow_one_token() {
+    const DECIMAL_FRACTIONAL: u128 = 1_000000_000000_000000_u128; // 1*10**18
+
+    const INIT_BALANCE_SECOND_TOKEN: u128 = 1_000_000 * DECIMAL_FRACTIONAL; // 1M ATOM
+
+    const DEPOSIT_OF_SECOND_TOKEN: u128 = 300 * DECIMAL_FRACTIONAL;
+
+    const BORROW_SECOND_TOKEN: u128 = 300 * DECIMAL_FRACTIONAL;
+
+    /*
+    price eth 1500
+    price atom 10
+
+    deposited eth 200 * 1500 = 300_000 $
+
+    borrowed atom 300 * 10 = 3_000 $
+    */
+
+    // contract reserves: 1000 ETH and 1000 ATOM
+    // user deposited 200 ETH and 300 ATOM
+    let (env, contract_client, admin, user) =
+        success_deposit_as_collateral_of_diff_token_with_prices();
+
+    contract_client.Redeem(&user, &symbol_short!("atom"), &DEPOSIT_OF_SECOND_TOKEN);
+
+
+    let user_deposited_balance_after_redeeming: u128 = contract_client.GetDeposit(&user, &symbol_short!("atom"));
+
+    assert_eq!(user_deposited_balance_after_redeeming, 0);
+
+    // assert_eq!(
+    //     app.wrap()
+    //         .query_balance("user", "atom")
+    //         .unwrap()
+    //         .amount
+    //         .u128(),
+    //     INIT_BALANCE_SECOND_TOKEN
+    // );
+
+
+    contract_client.Borrow(&user, &symbol_short!("atom"), &BORROW_SECOND_TOKEN);
+
+    let current_info: LedgerInfo = env.ledger().get();
+
+    env.ledger().set(LedgerInfo {
+        timestamp: 31536000,
+        protocol_version: current_info.protocol_version,
+        sequence_number: current_info.sequence_number,
+        network_id: current_info.network_id,
+        base_reserve: current_info.base_reserve,
+        min_temp_entry_expiration: current_info.min_temp_entry_expiration,
+        min_persistent_entry_expiration: current_info.min_persistent_entry_expiration,
+        max_entry_expiration: current_info.max_entry_expiration,
+    });
+
+    let user_borrowed_balance: u128 = contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("atom"));
+
+    assert_ne!(user_borrowed_balance, BORROW_SECOND_TOKEN);
+    assert_eq!(
+        user_borrowed_balance,
+        BORROW_SECOND_TOKEN * 105 / 100
+    );
+}
+
+#[test]
 fn test_decimal() {
     let env = Env::default();
     env.mock_all_auths();
