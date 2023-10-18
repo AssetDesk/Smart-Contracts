@@ -38,30 +38,31 @@ pub trait DecimalExt {
     fn to_u128_with_decimals(&self, decimals: u32) -> Result<u128, rust_decimal::Error>;
 }
 
-impl DecimalExt for Decimal {
-    // converting high-precise numbers into u128
-    fn to_u128_with_decimals(&self, decimals: u32) -> Result<u128, rust_decimal::Error> {
-        let s = self.to_string();
-        let (left, right) = s.split_once(".").unwrap_or((&s, ""));
-        let mut right = right.to_string();
-        let right_len = right.len() as u32;
-        if right_len > decimals {
-            right.truncate(decimals.try_into().unwrap());
-        } else if right_len < decimals {
-            let zeroes = decimals - right_len;
-            right.push_str(&"0".repeat(zeroes.try_into().unwrap()));
-        }
-        let s = format!("{}{}", left, right);
-        Ok(s.parse::<u128>().unwrap_or(0))
-    }
-}
-
 // impl DecimalExt for Decimal {
 //     // converting high-precise numbers into u128
 //     fn to_u128_with_decimals(&self, decimals: u32) -> Result<u128, rust_decimal::Error> {
-//         Ok(self.to_u128().unwrap_or(0))
+//         let s = self.to_string();
+//         let (left, right) = s.split_once(".").unwrap_or((&s, ""));
+//         let mut right = right.to_string();
+//         let right_len = right.len() as u32;
+//         if right_len > decimals {
+//             right.truncate(decimals.try_into().unwrap());
+//         } else if right_len < decimals {
+//             let zeroes = decimals - right_len;
+//             right.push_str(&"0".repeat(zeroes.try_into().unwrap()));
+//         }
+//         let s = format!("{}{}", left, right);
+//         Ok(s.parse::<u128>().unwrap_or(0))
 //     }
 // }
+
+impl DecimalExt for Decimal {
+    // converting high-precise numbers into u128
+    fn to_u128_with_decimals(&self, decimals: u32) -> Result<u128, rust_decimal::Error> {
+        let number_dec_new: Decimal = self * Decimal::new(10_i64.pow(decimals), 0);
+        Ok(number_dec_new.to_u128().unwrap_or(0))
+    }
+}
 
 fn has_administrator(e: &Env) -> bool {
     let key = DataKey::Admin;
@@ -854,6 +855,60 @@ impl LendingContract {
         )
     }
 
+    pub fn Redeem(env: Env, user: Address, denom: Symbol, amount: u128 ) {
+
+        user.require_auth();
+
+        // assert!(amount > 0, "Amount should be a positive number");
+
+        // assert!(
+        //     SUPPORTED_TOKENS.has(deps.storage, denom.clone()),
+        //     "There is no such supported token yet"
+        // );
+
+        execute_update_liquidity_index_data(env.clone(), denom.clone());
+
+        let current_balance = get_deposit(
+            env.clone(),
+            user.clone(),
+            denom.clone(),
+        );
+
+        // assert!(
+        //     current_balance >= amount,
+        //     "The account doesn't have enough digital tokens to do withdraw"
+        // );
+
+        let remaining: u128 = current_balance - amount;
+
+        let token_decimals: u32 = get_token_decimal(env.clone(), denom.clone());
+
+        let mm_token_price: u128 = get_mm_token_price(env.clone(), denom.clone());
+
+        let new_user_mm_token_balance: u128 =
+            Decimal::from_i128_with_scale(remaining as i128, token_decimals)
+                .div(Decimal::from_i128_with_scale(
+                    mm_token_price as i128,
+                    token_decimals,
+                ))
+                .to_u128_with_decimals(token_decimals)
+                .unwrap();
+
+        env.storage().persistent().set(
+            &DataKey::USER_MM_TOKEN_BALANCE(user.clone(), denom.clone()),
+            &new_user_mm_token_balance,
+        );
+
+        move_token(
+            &env,
+            &get_token_address(env.clone(), denom.clone()),
+            &env.current_contract_address(),
+            &user,
+            amount as i128,
+        )
+
+    }
+
     pub fn GetDeposit(env: Env, user: Address, denom: Symbol) -> u128 {
         get_deposit(env, user, denom)
     }
@@ -884,6 +939,12 @@ impl LendingContract {
 
     pub fn GetUserBorrowAmountWithInterest(env: Env, user: Address, denom: Symbol) -> u128 {
         get_user_borrow_amount_with_interest(env, user, denom)
+    }
+
+    pub fn test_decimal(env: Env, number: u128, decimals: u32) -> (u128, u128) {
+        let number_dec: Decimal = Decimal::from_i128_with_scale(number as i128, decimals);
+        let number_dec2: Decimal = number_dec * Decimal::new(10_i64.pow(decimals), 0);
+        (number_dec.to_u128_with_decimals(decimals).unwrap(), number_dec2.to_u128().unwrap())
     }
 
     // pub fn GetAllUsersWithBorrows(env: Env) -> Vec<Address> {
