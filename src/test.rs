@@ -565,3 +565,23 @@ fn test_get_user_borrow_amount_with_interest() {
 
     // assert!(!users_with_borrow.is_empty());
 }
+
+#[test]
+fn test_decimal() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    env.budget().reset_unlimited();
+    let contract_address = env.register_contract(None, LendingContract);
+    let contract_client = LendingContractClient::new(&env, &contract_address);
+    let admin: Address = Address::random(&env);
+
+    let decimals: u32 = 10;
+    let u128_max: u128 = u128::MAX / 10_u128.pow(decimals.clone());
+
+    let (num1, num2) = contract_client.test_decimal(&u128_max, &18);
+    
+    println!("Numbers: {:?}, {:?}", num1, num2);
+    println!("Number : {:?}", num1 / 10_u128.pow(18));
+    assert_eq!(num1, num2);
+}
