@@ -630,7 +630,7 @@ impl LendingContract {
         write_administrator(&e, &admin);
     }
 
-    pub fn deposit(env: Env, user_address: Address, denom: Symbol, deposited_token_amount: u128) {
+    pub fn Deposit(env: Env, user_address: Address, denom: Symbol, deposited_token_amount: u128) {
         user_address.require_auth();
 
         let token_address: Address = get_token_address(env.clone(), denom.clone());
