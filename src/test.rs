@@ -7,6 +7,7 @@ use crate::types::*;
 use std::println;
 
 use soroban_sdk::testutils::{Address as _, Events, Ledger, LedgerInfo};
+use soroban_sdk::token::Interface;
 use soroban_sdk::{symbol_short, token, Address, Env, IntoVal, String, Symbol};
 use token::Client;
 
@@ -309,7 +310,15 @@ pub fn success_deposit_as_collateral_of_diff_token_with_prices(
     (env, contract_client, admin, user)
 }
 
-pub fn success_borrow_setup() -> (Env, LendingContractClient<'static>, Address, Address, token_contract::Client<'static>, token_contract::Client<'static>) {
+pub fn success_borrow_setup() -> (
+    Env,
+    LendingContractClient<'static>,
+    Address,
+    Address,
+    Address,
+    token_contract::Client<'static>,
+    token_contract::Client<'static>,
+) {
     const TOKENS_DECIMALS: u32 = 18;
 
     const INIT_BALANCE_ETH: u128 = 10_000 * 10u128.pow(TOKENS_DECIMALS); // 10_000 ETH
@@ -344,7 +353,6 @@ pub fn success_borrow_setup() -> (Env, LendingContractClient<'static>, Address, 
     const PRICE_ETH: u128 = 2000 * 10u128.pow(PRICE_DECIMALS);
     const PRICE_ATOM: u128 = 10 * 10u128.pow(PRICE_DECIMALS);
 
-    
     let env = Env::default();
     env.mock_all_auths();
 
@@ -422,13 +430,11 @@ pub fn success_borrow_setup() -> (Env, LendingContractClient<'static>, Address, 
     assert_eq!(get_price_atom, 1000000000); // 10$
     assert_eq!(get_price_eth, 200000000000); // 2000$
 
-
     contract_client.ToggleCollateralSetting(&user1, &symbol_short!("eth"));
     contract_client.ToggleCollateralSetting(&user1, &symbol_short!("atom"));
 
     contract_client.ToggleCollateralSetting(&admin, &symbol_short!("eth"));
     contract_client.ToggleCollateralSetting(&admin, &symbol_short!("atom"));
-
 
     contract_client.Deposit(&user1, &symbol_short!("eth"), &DEPOSIT_AMOUNT_ETH);
 
@@ -445,11 +451,10 @@ pub fn success_borrow_setup() -> (Env, LendingContractClient<'static>, Address, 
         max_entry_expiration: current_info.max_entry_expiration,
     });
 
-
-    let _available_to_redeem: u128 = contract_client.GetAvailableToRedeem(&user1, &symbol_short!("eth"));
+    let _available_to_redeem: u128 =
+        contract_client.GetAvailableToRedeem(&user1, &symbol_short!("eth"));
 
     let user_deposited_balance: u128 = contract_client.GetDeposit(&user1, &symbol_short!("eth"));
-    
 
     assert_eq!(user_deposited_balance, DEPOSIT_AMOUNT_ETH);
 
@@ -501,13 +506,9 @@ pub fn success_borrow_setup() -> (Env, LendingContractClient<'static>, Address, 
         max_entry_expiration: current_info.max_entry_expiration,
     });
 
-    contract_client.Borrow(
-        &user1,
-        &symbol_short!("eth"),
-        &BORROW_AMOUNT_ETH,
-    );
+    contract_client.Borrow(&user1, &symbol_short!("eth"), &BORROW_AMOUNT_ETH);
 
-    (env, contract_client, admin, user1, token_atom, token_eth)
+    (env, contract_client, admin, user1, liquidator, token_atom, token_eth)
 }
 
 #[test]
@@ -792,8 +793,8 @@ fn test_success_borrow_one_token() {
 
     contract_client.Redeem(&user, &symbol_short!("atom"), &DEPOSIT_OF_SECOND_TOKEN);
 
-
-    let user_deposited_balance_after_redeeming: u128 = contract_client.GetDeposit(&user, &symbol_short!("atom"));
+    let user_deposited_balance_after_redeeming: u128 =
+        contract_client.GetDeposit(&user, &symbol_short!("atom"));
 
     assert_eq!(user_deposited_balance_after_redeeming, 0);
 
@@ -802,10 +803,9 @@ fn test_success_borrow_one_token() {
     //         .query_balance("user", "atom")
     //         .unwrap()
     //         .amount
-    //         .u128(),
+    //         ,
     //     INIT_BALANCE_SECOND_TOKEN
     // );
-
 
     contract_client.Borrow(&user, &symbol_short!("atom"), &BORROW_SECOND_TOKEN);
 
@@ -822,19 +822,17 @@ fn test_success_borrow_one_token() {
         max_entry_expiration: current_info.max_entry_expiration,
     });
 
-    let user_borrowed_balance: u128 = contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("atom"));
+    let user_borrowed_balance: u128 =
+        contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("atom"));
 
     assert_ne!(user_borrowed_balance, BORROW_SECOND_TOKEN);
-    assert_eq!(
-        user_borrowed_balance,
-        BORROW_SECOND_TOKEN * 105 / 100
-    );
+    assert_eq!(user_borrowed_balance, BORROW_SECOND_TOKEN * 105 / 100);
 }
 
 #[test]
 fn test_success_repay_whole_amount() {
     // user borrowed 50 ETH
-    let (env, contract_client, admin, user, token_atom, token_eth) = success_borrow_setup();
+    let (env, contract_client, admin, user, liquidator, token_atom, token_eth) = success_borrow_setup();
 
     let current_info: LedgerInfo = env.ledger().get();
 
@@ -849,14 +847,15 @@ fn test_success_repay_whole_amount() {
         max_entry_expiration: current_info.max_entry_expiration,
     });
 
-
-    let user_borrow_amount_with_interest: u128 = contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
+    let user_borrow_amount_with_interest: u128 =
+        contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
 
     let amount_to_repay_with_interest = user_borrow_amount_with_interest;
 
     contract_client.Repay(&user, &symbol_short!("eth"), &amount_to_repay_with_interest);
 
-    let user_borrow_amount_with_interest: u128 = contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
+    let user_borrow_amount_with_interest: u128 =
+        contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
 
     assert_eq!(user_borrow_amount_with_interest, 0);
 }
@@ -864,19 +863,24 @@ fn test_success_repay_whole_amount() {
 #[test]
 fn test_success_repay_more_than_needed() {
     // user borrowed 50 ETH
-    let (env, contract_client, admin, user, token_atom, token_eth) = success_borrow_setup();
+    let (env, contract_client, admin, user,  liquidator,token_atom, token_eth) = success_borrow_setup();
 
     let mut ledger_info: LedgerInfo = env.ledger().get();
     ledger_info.timestamp = 3153600 + 10000;
     env.ledger().set(ledger_info);
 
-    let user_borrow_amount_with_interest: u128 = contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
+    let user_borrow_amount_with_interest: u128 =
+        contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
 
     let amount_to_repay_with_interest: u128 = user_borrow_amount_with_interest;
 
     let underlying_balance_before_repay: i128 = token_eth.balance(&contract_client.address);
 
-    contract_client.Repay(&user, &symbol_short!("eth"), &(amount_to_repay_with_interest * 2));
+    contract_client.Repay(
+        &user,
+        &symbol_short!("eth"),
+        &(amount_to_repay_with_interest * 2),
+    );
 
     let underlying_balance_after_repay: i128 = token_eth.balance(&contract_client.address);
 
@@ -886,7 +890,8 @@ fn test_success_repay_more_than_needed() {
         underlying_balance_before_repay
     );
 
-    let user_borrow_amount_with_interest: u128 = contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
+    let user_borrow_amount_with_interest: u128 =
+        contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
 
     assert_eq!(user_borrow_amount_with_interest, 0);
 }
@@ -897,28 +902,192 @@ fn test_success_repay_by_parts() {
     const BORROW_AMOUNT_ETH: u128 = 50 * 10u128.pow(TOKENS_DECIMALS); // 50 ETH
 
     // user borrowed 50 ETH
-    let (env, contract_client, admin, user, token_atom, token_eth) = success_borrow_setup();
+    let (env, contract_client, admin, user,  liquidator,token_atom, token_eth) = success_borrow_setup();
 
     let mut ledger_info: LedgerInfo = env.ledger().get();
     ledger_info.timestamp = 31536000 + 10000;
     env.ledger().set(ledger_info);
 
-    let borrow_info_before_first_repay: u128 = contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
+    let borrow_info_before_first_repay: u128 =
+        contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
 
     assert_eq!(
         borrow_info_before_first_repay,
         BORROW_AMOUNT_ETH * 105 / 100
     );
 
-    contract_client.Repay(&user, &symbol_short!("eth"), &(borrow_info_before_first_repay / 2));
+    contract_client.Repay(
+        &user,
+        &symbol_short!("eth"),
+        &(borrow_info_before_first_repay / 2),
+    );
 
-    let borrow_info_after_first_repay: u128 = contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
+    let borrow_info_after_first_repay: u128 =
+        contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
 
-    contract_client.Repay(&user, &symbol_short!("eth"), &(borrow_info_after_first_repay));
+    contract_client.Repay(
+        &user,
+        &symbol_short!("eth"),
+        &(borrow_info_after_first_repay),
+    );
 
-    let user_borrowed_balance: u128 = contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
+    let user_borrowed_balance: u128 =
+        contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
 
     assert_eq!(user_borrowed_balance, 0);
+}
+
+#[test]
+fn test_success_liquidation() {
+    const TOKENS_DECIMALS: u32 = 18;
+    const BORROW_AMOUNT_ETH: u128 = 121 * 10u128.pow(TOKENS_DECIMALS); // 121 ETH
+    const LIQUIDATOR_DEPOSIT_AMOUNT_ETH: u128 = 10_000 * 10u128.pow(TOKENS_DECIMALS); // 10_000 ETH
+    const YEAR_IN_SECONDS: u64 = 31536000;
+
+    // contract reserves: 1000 ETH
+    // user deposited 200 ETH and 300 ATOM
+    // user borrowed 50 ETH
+    let (env, contract_client, admin, user,  liquidator,token_atom, token_eth) = success_borrow_setup();
+
+    let mut ledger_info: LedgerInfo = env.ledger().get();
+    ledger_info.timestamp = 10000;
+    env.ledger().set(ledger_info.clone());
+
+
+    let user_deposited_balance_eth: u128 = contract_client.GetDeposit(&user, &symbol_short!("eth"));
+
+    assert_eq!(
+        user_deposited_balance_eth,
+        200_000000000000000000
+    ); // 200 ETH
+
+    let user_deposited_balance_atom: u128 = contract_client.GetDeposit(&user, &symbol_short!("atom"));
+
+
+    assert_eq!(
+        user_deposited_balance_atom,
+        300_000000000000000000
+    ); // 300 ATOM
+
+    let user_collateral_usd: u128 = contract_client.GetUserCollateralUsd(&user);
+
+
+    // 200 ETH * 2000 + 300 ATOM * 10 == 403_000$
+    assert_eq!(user_collateral_usd, 403_00000000000);
+
+    let reserve_configuration_atom: ReserveConfiguration = contract_client.GetReserveConfiguration(&symbol_short!("atom"));
+
+
+    assert_eq!(
+        reserve_configuration_atom.loan_to_value_ratio,
+        7500000
+    ); // ltv_atom = 75%
+
+    let reserve_configuration_eth: ReserveConfiguration = contract_client.GetReserveConfiguration(&symbol_short!("eth"));
+
+    assert_eq!(
+        reserve_configuration_eth.loan_to_value_ratio,
+        8500000
+    ); // ltv_eth = 85%
+
+    let user_max_allowed_borrow_amount_usd: u128 = contract_client.GetUserMaxAllowedBorrowAmountUsd(&user);
+
+    // 200 ETH * 0.85 * 2000 + 300 ATOM * 0.75 * 10 == 340_000 + 2_250 = 342_250$
+    assert_eq!(user_max_allowed_borrow_amount_usd, 342_250_00000000);
+
+    let user_borrowed_usd: u128 = contract_client.GetUserBorrowedUsd(&user);
+
+    assert_eq!(user_borrowed_usd, 100_000_00000000); // 50 ETH * 2000 = 100_000$
+
+    let available_to_borrow_eth: u128 = contract_client.GetAvailableToBorrow(&user, &symbol_short!("eth"));
+
+    // (user_max_allowed_borrow_amount_usd - user_borrowed_usd) / price =
+    // (342_250$ - 100_000$) / price = 242_250$ / price
+    assert_eq!(available_to_borrow_eth, 121125000000000000000); // 242_250$ / 2000 == 121.125 ETH
+
+    contract_client.Borrow(&user, &symbol_short!("eth"), &BORROW_AMOUNT_ETH);
+
+    let available_to_borrow_eth: u128 = contract_client.GetAvailableToBorrow(&user, &symbol_short!("eth"));
+
+    assert_eq!(available_to_borrow_eth, 125000000000000000); // 0.125 ETH
+
+    let user_liquidation_threshold: u128 = contract_client.GetUserLiquidationThreshold(&user);
+    assert_eq!(user_liquidation_threshold, 8992555); // 89.92555%
+
+    let user_utilization_rate: u128 = contract_client.GetUserUtilizationRate(&user);
+    assert_eq!(user_utilization_rate, 8486352); // 84.86352% < 89.92555%
+    
+    ledger_info.timestamp = 2 * YEAR_IN_SECONDS + 10000; // after 2 years
+    env.ledger().set(ledger_info.clone());
+
+
+    let available_to_borrow_eth: u128 = contract_client.GetAvailableToBorrow(&user, &symbol_short!("eth"));
+    assert_eq!(available_to_borrow_eth, 0);
+
+    let user_liquidation_threshold: u128 = contract_client.GetUserLiquidationThreshold(&user);
+    assert_eq!(user_liquidation_threshold, 8992676); // 89.92676%
+
+
+    let user_utilization_rate: u128 = contract_client.GetUserUtilizationRate(&user);
+    assert_eq!(user_utilization_rate, 9366274); // 93.66274% > 89.92676%  
+
+
+    let user_deposit_amount_eth = contract_client.GetDeposit(&user, &symbol_short!("eth"));
+    let user_deposit_amount_atom = contract_client.GetDeposit(&user, &symbol_short!("atom"));
+
+    assert_eq!(
+        user_deposit_amount_eth,
+        203_331286529000814400
+    ); // 203.331286529000814400 ETH
+    assert_eq!(
+        user_deposit_amount_atom,
+        300_000000000000000000
+    ); // 300 ATOM
+
+    let user_borrow_amount_eth: u128 = contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
+
+    assert_eq!(user_borrow_amount_eth, 191850604584630250327); // 191.850604584630250327 ETH
+
+    contract_client.Deposit(&liquidator, &symbol_short!("eth"), &LIQUIDATOR_DEPOSIT_AMOUNT_ETH);
+
+    let liquidator_deposit_amount_eth = contract_client.GetDeposit(&liquidator, &symbol_short!("eth"));
+
+    let liquidator_deposit_amount_atom = contract_client.GetDeposit(&liquidator, &symbol_short!("atom"));
+
+    // TODO: need to correct the calculation inaccuracy
+    assert_eq!(
+        liquidator_deposit_amount_eth,
+        9999999999999999999999
+    ); // 9999.999999999999999999 ETH
+    assert_eq!(liquidator_deposit_amount_atom, 0); // 0
+
+    contract_client.Liquidation(&user, &liquidator);
+
+    let user_collateral_usd: u128 = contract_client.GetUserCollateralUsd(&user);
+
+
+    // after liquidation, all collateral is transferred to the liquidator
+    assert_eq!(user_collateral_usd, 0);
+
+    let user_borrowed_usd: u128 = contract_client.GetUserBorrowedUsd(&user);
+
+    // after liquidation, all borrowings are repaid by the liquidator
+    assert_eq!(user_borrowed_usd, 0);
+
+    let liquidator_deposit_amount_eth = contract_client.GetDeposit(&liquidator, &symbol_short!("eth"));
+    let liquidator_deposit_amount_atom = contract_client.GetDeposit(&liquidator, &symbol_short!("atom"));
+
+
+    // 9999.999999999999999999 ETH - 191.850604584630250327 ETH + 203.331286529000814400 ETH ~= 10011,480681944 ETH
+    // TODO: need to correct the calculation inaccuracy
+    assert_eq!(
+        liquidator_deposit_amount_eth,
+        10008510511955314159271
+    ); // 10008.510511955314159271 ETH
+    assert_eq!(
+        liquidator_deposit_amount_atom,
+        300000000000000000000
+    ); // 300 ATOM
 }
 
 #[test]
@@ -935,7 +1104,7 @@ fn test_decimal() {
     let u128_max: u128 = u128::MAX / 10_u128.pow(decimals.clone());
 
     let (num1, num2) = contract_client.test_decimal(&u128_max, &18);
-    
+
     println!("Numbers: {:?}, {:?}", num1, num2);
     println!("Number : {:?}", num1 / 10_u128.pow(18));
     assert_eq!(num1, num2);
