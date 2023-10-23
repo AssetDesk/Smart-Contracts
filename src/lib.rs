@@ -190,6 +190,47 @@ fn get_total_borrowed_by_token(env: Env, denom: Symbol) -> u128 {
     total_borrowed_amount_with_interest
 }
 
+pub fn get_user_max_allowed_borrow_amount_usd(
+    env: Env,
+    user: Address,
+) -> u128 {
+    // the maximum amount in USD that a user can borrow
+    let mut max_allowed_borrow_amount_usd = 0u128;
+
+    for token in get_supported_tokens(env.clone()) {
+        let use_user_deposit_as_collateral =
+            user_deposit_as_collateral(env.clone(), user.clone(), token.clone());
+
+        if use_user_deposit_as_collateral {
+            let user_deposit: u128 = get_deposit( env.clone(), user.clone(), token.clone());
+
+            let reserve_configuration: ReserveConfiguration = env
+                .storage()
+                .persistent()
+                .get(&DataKey::RESERVE_CONFIGURATION(token.clone()))
+                .unwrap();
+
+            let loan_to_value_ratio: u128 = reserve_configuration.loan_to_value_ratio;
+
+            let token_decimals: u32 =
+                get_token_decimal(env.clone(), token.clone());
+
+            let price: u128 = fetch_price_by_token(env.clone(), token.clone());
+
+            let user_deposit_usd: u128 =
+                Decimal::from_i128_with_scale(user_deposit as i128, token_decimals)
+                    .mul(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
+                    .to_u128_with_decimals(USD_DECIMALS)
+                    .unwrap();
+
+            max_allowed_borrow_amount_usd +=
+                user_deposit_usd * loan_to_value_ratio / HUNDRED_PERCENT;
+        }
+    }
+
+    max_allowed_borrow_amount_usd
+}
+
 pub fn get_utilization_rate_by_token(env: Env, denom: Symbol) -> u128 {
     let reserves_by_token = get_total_reserves_by_token(env.clone(), denom.clone());
 
@@ -200,6 +241,16 @@ pub fn get_utilization_rate_by_token(env: Env, denom: Symbol) -> u128 {
     } else {
         0_u128
     }
+}
+
+
+pub fn get_reserve_configuration(env: Env, denom: Symbol) -> ReserveConfiguration {
+    let reserve_configuration: ReserveConfiguration = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RESERVE_CONFIGURATION(denom.clone()))
+            .unwrap();
+    reserve_configuration
 }
 
 pub fn get_user_utilization_rate(env: Env, user: Address) -> u128 {
@@ -453,43 +504,6 @@ pub fn get_user_borrowed_usd(env: Env, user: Address) -> u128 {
     }
 
     user_borrowed_usd
-}
-
-pub fn get_user_max_allowed_borrow_amount_usd(env: Env, user: Address) -> u128 {
-    // the maximum amount in USD that a user can borrow
-    let mut max_allowed_borrow_amount_usd = 0u128;
-
-    for token in get_supported_tokens(env.clone()) {
-        let use_user_deposit_as_collateral =
-            user_deposit_as_collateral(env.clone(), user.clone(), token.clone());
-
-        if use_user_deposit_as_collateral {
-            let user_deposit = get_deposit(env.clone(), user.clone(), token.clone());
-
-            let reserve_configuration: ReserveConfiguration = env
-                .storage()
-                .persistent()
-                .get(&DataKey::RESERVE_CONFIGURATION(token.clone()))
-                .unwrap();
-
-            let loan_to_value_ratio = reserve_configuration.loan_to_value_ratio;
-
-            let token_decimals = get_token_decimal(env.clone(), token.clone());
-
-            let price = fetch_price_by_token(env.clone(), token.clone());
-
-            let user_deposit_usd =
-                Decimal::from_i128_with_scale(user_deposit as i128, token_decimals)
-                    .mul(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
-                    .to_u128_with_decimals(USD_DECIMALS)
-                    .unwrap();
-
-            max_allowed_borrow_amount_usd +=
-                user_deposit_usd * loan_to_value_ratio / HUNDRED_PERCENT;
-        }
-    }
-
-    max_allowed_borrow_amount_usd
 }
 
 pub fn get_available_to_borrow(env: Env, user: Address, denom: Symbol) -> u128 {
@@ -1288,8 +1302,35 @@ impl LendingContract {
         get_user_borrow_amount_with_interest(env, user, denom)
     }
 
+    pub fn GetUserMaxAllowedBorrowAmountUsd(env: Env, user: Address) -> u128 {
+        get_user_max_allowed_borrow_amount_usd(env, user)
+    }
+
+    pub fn GetUserBorrowedUsd(env: Env, user: Address) -> u128 {
+        get_user_borrowed_usd(env, user)
+    }
+
+    pub fn GetUserLiquidationThreshold(env: Env, user: Address) -> u128 {
+        get_user_liquidation_threshold(env, user)
+    }
+
+    pub fn GetUserUtilizationRate(env: Env, user: Address) -> u128 {
+        get_user_utilization_rate(env, user)
+    }
+    pub fn GetAvailableToBorrow(env: Env, user: Address, denom: Symbol) -> u128 {
+        get_available_to_borrow(env, user, denom)
+    }
+
     pub fn GetAvailableToRedeem(env: Env, user: Address, denom: Symbol) -> u128 {
         get_available_to_redeem(env, user, denom)
+    }
+
+    pub fn GetUserCollateralUsd(env: Env, user: Address) -> u128 {
+        get_user_collateral_usd(env, user)
+    }
+
+    pub fn GetReserveConfiguration(env: Env, denom: Symbol) -> ReserveConfiguration {
+        get_reserve_configuration(env, denom)
     }
 
     pub fn SetReserveConfiguration(
