@@ -1,3 +1,6 @@
+#![allow(non_camel_case_types)]
+#![allow(dead_code)]
+
 use soroban_sdk::{contracttype, Address, Symbol};
 
 pub(crate) const DAY_IN_LEDGERS: u32 = 17280;

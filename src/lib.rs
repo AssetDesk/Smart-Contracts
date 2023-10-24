@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(non_snake_case)]
 
 use crate::types::{
     DataKey, LiquidityIndexData, ReserveConfiguration, TokenInfo, TokenInterestRateModelParams,
@@ -6,9 +7,8 @@ use crate::types::{
 };
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, panic_with_error, symbol_short, token, vec, Address,
-    Env, Symbol, Vec,
-};
+    contract, contractimpl, token, Address, Env, Symbol, Vec,
+}; // contracterror, panic_with_error, symbol_short, vec
 
 use core::ops::{Add, Div, Mul};
 use rust_decimal::prelude::{Decimal, MathematicalOps, ToPrimitive};
@@ -880,7 +880,7 @@ impl LendingContract {
 
         let liquidator = read_liquidator(&env);
 
-        if (user == liquidator) {
+        if user == liquidator {
             panic!("The liquidator cannot borrow");
         }
 
@@ -893,7 +893,7 @@ impl LendingContract {
         let available_to_borrow_amount: u128 =
             get_available_to_borrow(env.clone(), user.clone(), denom.clone());
 
-        if (amount >= available_to_borrow_amount) {
+        if amount >= available_to_borrow_amount {
             panic!("The amount to be borrowed is not available");
         }
 
