@@ -190,10 +190,7 @@ fn get_total_borrowed_by_token(env: Env, denom: Symbol) -> u128 {
     total_borrowed_amount_with_interest
 }
 
-pub fn get_user_max_allowed_borrow_amount_usd(
-    env: Env,
-    user: Address,
-) -> u128 {
+pub fn get_user_max_allowed_borrow_amount_usd(env: Env, user: Address) -> u128 {
     // the maximum amount in USD that a user can borrow
     let mut max_allowed_borrow_amount_usd = 0u128;
 
@@ -202,7 +199,7 @@ pub fn get_user_max_allowed_borrow_amount_usd(
             user_deposit_as_collateral(env.clone(), user.clone(), token.clone());
 
         if use_user_deposit_as_collateral {
-            let user_deposit: u128 = get_deposit( env.clone(), user.clone(), token.clone());
+            let user_deposit: u128 = get_deposit(env.clone(), user.clone(), token.clone());
 
             let reserve_configuration: ReserveConfiguration = env
                 .storage()
@@ -212,8 +209,7 @@ pub fn get_user_max_allowed_borrow_amount_usd(
 
             let loan_to_value_ratio: u128 = reserve_configuration.loan_to_value_ratio;
 
-            let token_decimals: u32 =
-                get_token_decimal(env.clone(), token.clone());
+            let token_decimals: u32 = get_token_decimal(env.clone(), token.clone());
 
             let price: u128 = fetch_price_by_token(env.clone(), token.clone());
 
@@ -243,13 +239,12 @@ pub fn get_utilization_rate_by_token(env: Env, denom: Symbol) -> u128 {
     }
 }
 
-
 pub fn get_reserve_configuration(env: Env, denom: Symbol) -> ReserveConfiguration {
     let reserve_configuration: ReserveConfiguration = env
-            .storage()
-            .persistent()
-            .get(&DataKey::RESERVE_CONFIGURATION(denom.clone()))
-            .unwrap();
+        .storage()
+        .persistent()
+        .get(&DataKey::RESERVE_CONFIGURATION(denom.clone()))
+        .unwrap();
     reserve_configuration
 }
 
@@ -401,6 +396,11 @@ fn execute_update_liquidity_index_data(env: Env, denom: Symbol) {
     env.storage().persistent().set(
         &DataKey::LIQUIDITY_INDEX_DATA(denom.clone()),
         &new_liquidity_index_data,
+    );
+    env.storage().persistent().bump(
+        &DataKey::LIQUIDITY_INDEX_DATA(denom.clone()),
+        MONTH_LIFETIME_THRESHOLD,
+        MONTH_BUMP_AMOUNT,
     );
 }
 
@@ -690,6 +690,11 @@ impl LendingContract {
             &DataKey::USER_MM_TOKEN_BALANCE(user_address.clone(), denom.clone()),
             &new_user_mm_token_balance,
         );
+        env.storage().persistent().bump(
+            &DataKey::USER_MM_TOKEN_BALANCE(user_address.clone(), denom.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
+        );
     }
 
     pub fn AddMarkets(
@@ -715,6 +720,11 @@ impl LendingContract {
         env.storage()
             .persistent()
             .set(&DataKey::SUPPORTED_TOKENS_LIST, &supported_tokens);
+        env.storage().persistent().bump(
+            &DataKey::SUPPORTED_TOKENS_LIST,
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
+        );
 
         let token_info: TokenInfo = TokenInfo {
             denom: denom.clone(),
@@ -726,6 +736,11 @@ impl LendingContract {
         env.storage()
             .persistent()
             .set(&DataKey::SUPPORTED_TOKENS(denom.clone()), &token_info);
+        env.storage().persistent().bump(
+            &DataKey::SUPPORTED_TOKENS(denom.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
+        );
 
         let reserve_configuration: ReserveConfiguration = ReserveConfiguration {
             denom: denom.clone(),
@@ -735,6 +750,11 @@ impl LendingContract {
         env.storage().persistent().set(
             &DataKey::RESERVE_CONFIGURATION(denom.clone()),
             &reserve_configuration,
+        );
+        env.storage().persistent().bump(
+            &DataKey::RESERVE_CONFIGURATION(denom.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
         );
 
         let tokens_interest_rate_model_params: TokenInterestRateModelParams =
@@ -749,6 +769,11 @@ impl LendingContract {
             &DataKey::TOKENS_INTEREST_RATE_MODEL_PARAM(denom.clone()),
             &tokens_interest_rate_model_params,
         );
+        env.storage().persistent().bump(
+            &DataKey::TOKENS_INTEREST_RATE_MODEL_PARAM(denom.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
+        );
 
         let total_borrow_data: TotalBorrowData = TotalBorrowData {
             denom: denom.clone(),
@@ -761,6 +786,11 @@ impl LendingContract {
             &DataKey::TOTAL_BORROW_DATA(denom.clone()),
             &total_borrow_data,
         );
+        env.storage().persistent().bump(
+            &DataKey::TOTAL_BORROW_DATA(denom.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
+        );
 
         let liquidity_index_data: LiquidityIndexData = LiquidityIndexData {
             denom: denom.clone(),
@@ -771,6 +801,11 @@ impl LendingContract {
             &DataKey::LIQUIDITY_INDEX_DATA(denom.clone()),
             &liquidity_index_data,
         );
+        env.storage().persistent().bump(
+            &DataKey::LIQUIDITY_INDEX_DATA(denom.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
+        );
     }
 
     pub fn UpdatePrice(env: Env, denom: Symbol, price: u128) {
@@ -779,6 +814,11 @@ impl LendingContract {
         env.storage()
             .persistent()
             .set(&DataKey::PRICES(denom.clone()), &price);
+        env.storage().persistent().bump(
+            &DataKey::PRICES(denom.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
+        );
     }
 
     pub fn ToggleCollateralSetting(env: Env, user: Address, denom: Symbol) {
@@ -805,24 +845,26 @@ impl LendingContract {
 
                 let sum_borrow_balance_usd = get_user_borrowed_usd(env.clone(), user.clone());
 
-                //         let user_liquidation_threshold = get_user_liquidation_threshold(
-                //             env.clone(),
-                //             env.clone(),
-                //             user,
-                //         )
-                //             .unwrap()
-                //             .u128();
+                let user_liquidation_threshold = get_user_liquidation_threshold(
+                    env.clone(),
+                    user.clone(),
+                );
 
-                //         assert!(
-                //             sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold < sum_collateral_balance_usd - user_token_balance_usd,
-                //             "The collateral has already using to collateralise the borrowing. Not enough available balance"
-                //         );
+                assert!(
+                    sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold < sum_collateral_balance_usd - user_token_balance_usd,
+                    "The collateral has already using to collateralise the borrowing. Not enough available balance"
+                );
             }
         }
 
         env.storage().persistent().set(
             &DataKey::USER_DEPOSIT_AS_COLLATERAL(user.clone(), denom.clone()),
             &!use_user_deposit_as_collateral,
+        );
+        env.storage().persistent().bump(
+            &DataKey::USER_DEPOSIT_AS_COLLATERAL(user.clone(), denom.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
         );
     }
 
@@ -953,10 +995,20 @@ impl LendingContract {
             &DataKey::USER_BORROWING_INFO(user.clone(), denom.clone()),
             &new_user_borrowing_info,
         );
+        env.storage().persistent().bump(
+            &DataKey::USER_BORROWING_INFO(user.clone(), denom.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
+        );
 
         env.storage().persistent().set(
             &DataKey::TOTAL_BORROW_DATA(denom.clone()),
             &new_total_borrow_data,
+        );
+        env.storage().persistent().bump(
+            &DataKey::TOTAL_BORROW_DATA(denom.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
         );
 
         move_token(
@@ -1005,6 +1057,11 @@ impl LendingContract {
         env.storage().persistent().set(
             &DataKey::USER_MM_TOKEN_BALANCE(user.clone(), denom.clone()),
             &new_user_mm_token_balance,
+        );
+        env.storage().persistent().bump(
+            &DataKey::USER_MM_TOKEN_BALANCE(user.clone(), denom.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
         );
 
         move_token(
@@ -1117,10 +1174,20 @@ impl LendingContract {
             &DataKey::USER_BORROWING_INFO(user.clone(), repay_token.clone()),
             &new_user_borrowing_info,
         );
+        env.storage().persistent().bump(
+            &DataKey::USER_BORROWING_INFO(user.clone(), repay_token.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
+        );
 
         env.storage().persistent().set(
             &DataKey::TOTAL_BORROW_DATA(repay_token.clone()),
             &new_total_borrow_data,
+        );
+        env.storage().persistent().bump(
+            &DataKey::TOTAL_BORROW_DATA(repay_token.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
         );
 
         if remaining_amount > 0 {
@@ -1168,6 +1235,11 @@ impl LendingContract {
                 env.storage().persistent().set(
                     &DataKey::USER_MM_TOKEN_BALANCE(user.clone(), token.clone()),
                     &0_u128,
+                );
+                env.storage().persistent().bump(
+                    &DataKey::USER_MM_TOKEN_BALANCE(user.clone(), token.clone()),
+                    MONTH_LIFETIME_THRESHOLD,
+                    MONTH_BUMP_AMOUNT,
                 );
             }
 
@@ -1240,9 +1312,19 @@ impl LendingContract {
                         &DataKey::USER_BORROWING_INFO(user.clone(), token.clone()),
                         &new_user_borrowing_info,
                     );
+                    env.storage().persistent().bump(
+                        &DataKey::USER_BORROWING_INFO(user.clone(), token.clone()),
+                        MONTH_LIFETIME_THRESHOLD,
+                        MONTH_BUMP_AMOUNT,
+                    );
                     env.storage().persistent().set(
                         &DataKey::TOTAL_BORROW_DATA(token.clone()),
                         &new_total_borrow_data,
+                    );
+                    env.storage().persistent().bump(
+                        &DataKey::TOTAL_BORROW_DATA(token.clone()),
+                        MONTH_LIFETIME_THRESHOLD,
+                        MONTH_BUMP_AMOUNT,
                     );
                 }
 
@@ -1265,6 +1347,11 @@ impl LendingContract {
                 env.storage().persistent().set(
                     &DataKey::USER_MM_TOKEN_BALANCE(liquidator.clone(), token.clone()),
                     &new_liquidator_mm_token_balance,
+                );
+                env.storage().persistent().bump(
+                    &DataKey::USER_MM_TOKEN_BALANCE(liquidator.clone(), token.clone()),
+                    MONTH_LIFETIME_THRESHOLD,
+                    MONTH_BUMP_AMOUNT,
                 );
             }
         }
@@ -1356,6 +1443,11 @@ impl LendingContract {
                 liquidation_threshold,
             },
         );
+        env.storage().persistent().bump(
+            &DataKey::RESERVE_CONFIGURATION(denom.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
+        );
     }
 
     pub fn SetTokenInterestRateModelParams(
@@ -1384,6 +1476,11 @@ impl LendingContract {
                 rate_growth_factor,
                 optimal_utilization_ratio,
             },
+        );
+        env.storage().persistent().bump(
+            &DataKey::TOKENS_INTEREST_RATE_MODEL_PARAM(denom.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
         );
     }
 
