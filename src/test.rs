@@ -66,6 +66,8 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
     let user1 = Address::random(&env);
     let liquidator = Address::random(&env);
 
+    contract_client.initialize(&admin, &liquidator);
+
     let token_atom = create_custom_token(&env, &admin, "Atom", "atom", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
 
@@ -199,6 +201,8 @@ pub fn success_deposit_of_diff_token_with_prices(
     let admin = Address::random(&env);
     let user1 = Address::random(&env);
     let liquidator = Address::random(&env);
+
+    contract_client.initialize(&admin, &liquidator);
 
     let token_atom = create_custom_token(&env, &admin, "Atom", "atom", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
@@ -362,6 +366,8 @@ pub fn success_borrow_setup() -> (
     let admin = Address::random(&env);
     let user1 = Address::random(&env);
     let liquidator = Address::random(&env);
+
+    contract_client.initialize(&admin, &liquidator);
 
     let token_atom = create_custom_token(&env, &admin, "Atom", "atom", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
@@ -556,6 +562,9 @@ fn test_successful_deposits_of_one_token() {
     let contract_client = LendingContractClient::new(&env, &contract_address);
     let admin = Address::random(&env);
     let user1 = Address::random(&env);
+    let liquidator = Address::random(&env);
+
+    contract_client.initialize(&admin, &liquidator);
 
     let token_atom = create_custom_token(&env, &admin, "Atom", "atom", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
@@ -1099,7 +1108,7 @@ fn test_budget() {
 
     let token_xlm = create_custom_token(&env, &admin, "XLM", "xlm", &7);
 
-    contract_client.initialize(&admin);
+    contract_client.initialize(&admin, &liquidator);
 
     env.budget().reset_unlimited();
     contract_client.AddMarkets(
@@ -1120,24 +1129,4 @@ fn test_budget() {
         env.budget().cpu_instruction_cost()
     );
     println!("{:?}", env.budget());
-}
-
-#[test]
-fn test_decimal() {
-    let env = Env::default();
-    env.mock_all_auths();
-
-    env.budget().reset_unlimited();
-    let contract_address = env.register_contract(None, LendingContract);
-    let contract_client = LendingContractClient::new(&env, &contract_address);
-    let admin: Address = Address::random(&env);
-
-    let decimals: u32 = 10;
-    let u128_max: u128 = u128::MAX / 10_u128.pow(decimals.clone());
-
-    let (num1, num2) = contract_client.test_decimal(&u128_max, &18);
-
-    println!("Numbers: {:?}, {:?}", num1, num2);
-    println!("Number : {:?}", num1 / 10_u128.pow(18));
-    assert_eq!(num1, num2);
 }
