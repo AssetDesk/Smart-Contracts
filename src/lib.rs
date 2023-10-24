@@ -893,10 +893,9 @@ impl LendingContract {
         let available_to_borrow_amount: u128 =
             get_available_to_borrow(env.clone(), user.clone(), denom.clone());
 
-        //     assert!(
-        //         available_to_borrow_amount >= amount.u128(),
-        //         "The amount to be borrowed is not available"
-        //     );
+        if (amount >= available_to_borrow_amount) {
+            panic!("The amount to be borrowed is not available");
+        }
 
         //     assert!(
         //         get_available_liquidity_by_token(env.clone(), denom.clone())
@@ -1210,16 +1209,10 @@ impl LendingContract {
         }
     }
 
-    pub fn Liquidation(env: Env, user: Address, liquidator: Address) {
-        // TODO liquidator
-        // let admin: Address = read_administrator(&env);
-        // admin.require_auth();
-
-        // assert_eq!(
-        //     liquidator,
-        //     LIQUIDATOR.load(deps.storage).unwrap(),
-        //     "This functionality is allowed for liquidator only"
-        // );
+    pub fn Liquidation(env: Env, user: Address) {
+        // liquidator only
+        let liquidator: Address = read_liquidator(&env);
+        liquidator.require_auth();
 
         let user_utilization_rate = get_user_utilization_rate(env.clone(), user.clone());
 

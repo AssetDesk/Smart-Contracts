@@ -1068,7 +1068,7 @@ fn test_success_liquidation() {
     assert_eq!(liquidator_deposit_amount_eth, 9999999999999999999999); // 9999.999999999999999999 ETH
     assert_eq!(liquidator_deposit_amount_atom, 0); // 0
 
-    contract_client.Liquidation(&user, &liquidator);
+    contract_client.Liquidation(&user);
 
     let user_collateral_usd: u128 = contract_client.GetUserCollateralUsd(&user);
 
