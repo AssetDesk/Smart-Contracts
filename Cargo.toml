@@ -17,13 +17,13 @@ testutils = ["soroban-sdk/testutils"]
 soroban-sdk = { version = "20.0.0-rc2", features = ["alloc"] }
 rust_decimal = { version = "1.32", default-features = false, features = ["maths"]  }
 rust_decimal_macros = "1.32"
-linked_list_allocator = "0.10.5"
+# linked_list_allocator = "0.10.5"
 
 [dev_dependencies]
 soroban-sdk = { version = "20.0.0-rc2", features = ["testutils", "alloc"] }
 rust_decimal = { version = "1.32", default-features = false, features = ["maths"]  }
 rust_decimal_macros = "1.32"
-linked_list_allocator = "0.10.5"
+# linked_list_allocator = "0.10.5"
 
 [profile.release]
 opt-level = "z"
