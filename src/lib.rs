@@ -1044,10 +1044,9 @@ impl LendingContract {
 
         let current_balance = get_deposit(env.clone(), user.clone(), denom.clone());
 
-        // assert!(
-        //     current_balance >= amount,
-        //     "The account doesn't have enough digital tokens to do withdraw"
-        // );
+        if  amount > current_balance {
+            panic!("The account doesn't have enough digital tokens to do withdraw");
+        }
 
         let remaining: u128 = current_balance - amount;
 
