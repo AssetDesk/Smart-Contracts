@@ -715,8 +715,11 @@ impl LendingContract {
         rate_growth_factor: u128,
         optimal_utilization_ratio: u128,
     ) {
-        let mut supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+        // Admin only
+        let admin: Address = read_administrator(&env);
+        admin.require_auth();
 
+        let mut supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
         if supported_tokens.contains(denom.clone()) {
             panic!("There already exists such a supported token");
         }
