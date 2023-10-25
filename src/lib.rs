@@ -6,9 +6,7 @@ use crate::types::{
     TotalBorrowData, UserBorrowingInfo, MONTH_BUMP_AMOUNT, MONTH_LIFETIME_THRESHOLD,
 };
 
-use soroban_sdk::{
-    contract, contractimpl, token, Address, Env, Symbol, Vec,
-}; // contracterror, panic_with_error, symbol_short, vec
+use soroban_sdk::{contract, contractimpl, token, Address, Env, Symbol, Vec}; // contracterror, panic_with_error, symbol_short, vec
 
 use core::ops::{Add, Div, Mul};
 use rust_decimal::prelude::{Decimal, MathematicalOps, ToPrimitive};
@@ -855,10 +853,8 @@ impl LendingContract {
 
                 let sum_borrow_balance_usd = get_user_borrowed_usd(env.clone(), user.clone());
 
-                let user_liquidation_threshold = get_user_liquidation_threshold(
-                    env.clone(),
-                    user.clone(),
-                );
+                let user_liquidation_threshold =
+                    get_user_liquidation_threshold(env.clone(), user.clone());
 
                 assert!(
                     sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold < sum_collateral_balance_usd - user_token_balance_usd,
@@ -1044,7 +1040,7 @@ impl LendingContract {
 
         let current_balance = get_deposit(env.clone(), user.clone(), denom.clone());
 
-        if  amount > current_balance {
+        if amount > current_balance {
             panic!("The account doesn't have enough digital tokens to do withdraw");
         }
 
@@ -1094,12 +1090,6 @@ impl LendingContract {
             repay_amount.clone() as i128,
         );
 
-        // if info.funds.is_empty() {
-        //     return Err(ContractError::CustomError {
-        //         val: "Funds not transferred!".to_string(),
-        //     });
-        // }
-        
         let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
 
         if !supported_tokens.contains(repay_token.clone()) {
