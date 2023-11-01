@@ -127,7 +127,7 @@ fn get_total_borrow_data(env: Env, denom: Symbol) -> TotalBorrowData {
     total_borrow_data
 }
 
-pub fn get_interest_rate(env: Env, denom: Symbol) -> u128 {
+fn get_interest_rate(env: Env, denom: Symbol) -> u128 {
     let utilization_rate = get_utilization_rate_by_token(env.clone(), denom.clone());
 
     let token_interest: TokenInterestRateModelParams = env
@@ -152,7 +152,7 @@ pub fn get_interest_rate(env: Env, denom: Symbol) -> u128 {
     }
 }
 
-pub fn get_token_decimal(env: Env, denom: Symbol) -> u32 {
+fn get_token_decimal(env: Env, denom: Symbol) -> u32 {
     let token_info: TokenInfo = env
         .storage()
         .persistent()
@@ -161,7 +161,7 @@ pub fn get_token_decimal(env: Env, denom: Symbol) -> u32 {
     token_info.decimals
 }
 
-pub fn get_token_address(env: Env, denom: Symbol) -> Address {
+fn get_token_address(env: Env, denom: Symbol) -> Address {
     let token_info: TokenInfo = env
         .storage()
         .persistent()
@@ -192,7 +192,7 @@ fn get_total_borrowed_by_token(env: Env, denom: Symbol) -> u128 {
     total_borrowed_amount_with_interest
 }
 
-pub fn get_user_max_allowed_borrow_amount_usd(env: Env, user: Address) -> u128 {
+fn get_user_max_allowed_borrow_amount_usd(env: Env, user: Address) -> u128 {
     // the maximum amount in USD that a user can borrow
     let mut max_allowed_borrow_amount_usd = 0u128;
 
@@ -1478,17 +1478,21 @@ impl LendingContract {
         );
     }
 
-    pub fn GetTVL(env: Env) -> u128 {
-        let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
-        let mut tvl_usd: u128 = 0;
-        for token in supported_tokens {
-            let token_decimals: u32 = get_token_decimal(env.clone(), token.clone());
-            let price: u128 = fetch_price_by_token(env.clone(), token.clone());
-            let liquidity: u128 = get_available_liquidity_by_token(env.clone(), token.clone());
-            tvl_usd += price * liquidity / 10_u128.pow(token_decimals);
-        }
-        tvl_usd
+    pub fn GetInterestRate(env: Env, denom: Symbol) -> u128 {
+        get_interest_rate(env, denom)
     }
+
+    // pub fn GetTVL(env: Env) -> u128 {
+    //     let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+    //     let mut tvl_usd: u128 = 0;
+    //     for token in supported_tokens {
+    //         let token_decimals: u32 = get_token_decimal(env.clone(), token.clone());
+    //         let price: u128 = fetch_price_by_token(env.clone(), token.clone());
+    //         let liquidity: u128 = get_available_liquidity_by_token(env.clone(), token.clone());
+    //         tvl_usd += price * liquidity / 10_u128.pow(token_decimals);
+    //     }
+    //     tvl_usd
+    // }
 
     // pub fn GetAllUsersWithBorrows(env: Env) -> Vec<Address> {
     //     get_all_users_with_borrows(env)
