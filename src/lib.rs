@@ -1478,6 +1478,18 @@ impl LendingContract {
         );
     }
 
+    pub fn GetTVL(env: Env) -> u128 {
+        let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+        let mut tvl_usd: u128 = 0;
+        for token in supported_tokens {
+            let token_decimals: u32 = get_token_decimal(env.clone(), token.clone());
+            let price: u128 = fetch_price_by_token(env.clone(), token.clone());
+            let liquidity: u128 = get_available_liquidity_by_token(env.clone(), token.clone());
+            tvl_usd += price * liquidity / 10_u128.pow(token_decimals);
+        }
+        tvl_usd
+    }
+
     // pub fn GetAllUsersWithBorrows(env: Env) -> Vec<Address> {
     //     get_all_users_with_borrows(env)
     // }
