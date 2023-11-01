@@ -1482,6 +1482,10 @@ impl LendingContract {
         get_interest_rate(env, denom)
     }
 
+    pub fn GetUserBorrowingInfo(env: Env, user: Address, denom: Symbol) -> UserBorrowingInfo {
+        get_user_borrowing_info(env, user, denom)
+    }
+
     // pub fn GetTVL(env: Env) -> u128 {
     //     let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
     //     let mut tvl_usd: u128 = 0;
