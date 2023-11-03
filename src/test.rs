@@ -1130,3 +1130,15 @@ fn test_budget() {
     );
     println!("{:?}", env.budget());
 }
+
+#[test]
+fn test_tvl() {
+
+    // contract reserves: 1000 ETH + 1000 ATOM
+    // user deposited 200 ETH and 300 ATOM
+    // 1200 * 2000 + 1300 * 10 = 2413000
+    let (env, contract_client, admin, user) =
+    success_deposit_of_diff_token_with_prices();
+    
+    assert_eq!(contract_client.GetTVL(), 2_413_000 * 10u128.pow(8)); // 2_313_000 USD
+}
