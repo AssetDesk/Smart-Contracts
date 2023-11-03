@@ -420,8 +420,6 @@ fn get_mm_token_price(env: Env, denom: Symbol) -> u128 {
             .unwrap_or_default();
 
     mm_token_price
-
-    // u128::try_from(mm_token_price).unwrap()
 }
 
 fn user_deposit_as_collateral(env: Env, user: Address, denom: Symbol) -> bool {
@@ -1486,17 +1484,29 @@ impl LendingContract {
         get_user_borrowing_info(env, user, denom)
     }
 
-    // pub fn GetTVL(env: Env) -> u128 {
-    //     let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
-    //     let mut tvl_usd: u128 = 0;
-    //     for token in supported_tokens {
-    //         let token_decimals: u32 = get_token_decimal(env.clone(), token.clone());
-    //         let price: u128 = fetch_price_by_token(env.clone(), token.clone());
-    //         let liquidity: u128 = get_available_liquidity_by_token(env.clone(), token.clone());
-    //         tvl_usd += price * liquidity / 10_u128.pow(token_decimals);
-    //     }
-    //     tvl_usd
-    // }
+    pub fn UserDepositAsCollateral(env: Env, user: Address, denom: Symbol) -> bool {
+        user_deposit_as_collateral(env, user, denom)
+    }
+
+    pub fn GetAvailableLiquidityByToken(env: Env, denom: Symbol) -> u128 {
+        get_available_liquidity_by_token(env, denom)
+    }
+
+    pub fn GetUtilizationRateByToken(env: Env, denom: Symbol) -> u128 {
+        get_utilization_rate_by_token(env, denom)
+    }
+
+    pub fn GetTVL(env: Env) -> u128 {
+        let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+        let mut tvl_usd: u128 = 0;
+        for token in supported_tokens {
+            let token_decimals: u32 = get_token_decimal(env.clone(), token.clone());
+            let price: u128 = fetch_price_by_token(env.clone(), token.clone());
+            let liquidity: u128 = get_available_liquidity_by_token(env.clone(), token.clone());
+            tvl_usd += price * liquidity / 10_u128.pow(token_decimals);
+        }
+        tvl_usd
+    }
 
     // pub fn GetAllUsersWithBorrows(env: Env) -> Vec<Address> {
     //     get_all_users_with_borrows(env)
