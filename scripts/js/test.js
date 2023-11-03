@@ -203,6 +203,16 @@ async function Borrow(user_address, user_secret, token, amount) {
     await tx_send(func_name, user_address, user_secret, args);
 }
 
+async function GetInterestRate(token) {
+    const func_name = "GetInterestRate";
+    const args = [
+        xdr.ScVal.scvSymbol(token),
+    ];
+
+    let data = await tx_sim_with_fee(contract_address, func_name, args);
+    return data.tx_result;
+}
+
 export async function token_balance(token_address, user_address) {
     const func_name = "balance";
     const args = [
@@ -212,7 +222,7 @@ export async function token_balance(token_address, user_address) {
     return data.tx_result;
   }
 
-
+// Old function, do not use, for tests only
 export async function total_value_locked(supported_tokens_list) {
     let token_addresses = {
         "xlm": xlm_address,
@@ -235,14 +245,24 @@ export async function total_value_locked(supported_tokens_list) {
     return tvl;
 }
 
+export async function GetTVL() {
+    const func_name = "GetTVL";
+    const args = [];
+    const data = await tx_sim_with_fee(contract_address, func_name, args);
+    return data.tx_result;
+}
+
 // ================= Main flow ================= 
+let user2 = "GBWBSCUYRLOK3OCAICZEDJBHMVUWSDNS2R6ABK6Z55R76P4UKXFIZQSZ";
+
 console.log("========== Start ==========");
 const xlm_price = await GetPrice("xlm");
 const atk_price = await GetPrice("atk");
 console.log(" xlm price:", xlm_price, Number.parseFloat(10000n * xlm_price / 100_000_000n) / 10000);
 console.log(" atk price:", atk_price, Number.parseFloat(10000n * atk_price / 100_000_000n) / 10000);
 
-let tvl_decimal8 = await total_value_locked(["xlm", "atk"]);
+// let tvl_decimal8 = await total_value_locked(["xlm", "atk"]);
+let tvl_decimal8 = await GetTVL();
 let tvl = Number.parseFloat(100n * tvl_decimal8 / 100_000_000n) / 100;
 console.log(`Total Value Locked: ${tvl} USD`)
 
@@ -254,6 +274,11 @@ console.log("Admin xlm balance:", admin_xlm, Number.parseFloat(10000n * admin_xl
 console.log("      atk balance:", admin_atk, Number.parseFloat(10000n * admin_atk / 10_000_000n) / 10000);
 console.log("      deposit usd:", admin_deposit, Number.parseFloat(10000n * admin_deposit / 100_000_000n) / 10000);
 console.log("       borrow atk:", admin_atk_may_borrow, Number.parseFloat(10000n * admin_atk_may_borrow / 10_000_000n) / 10000);
+
+let borrow_apy_atk = await GetInterestRate("atk");
+console.log("Borrow APY ATK:", Number.parseFloat( 1000n * borrow_apy_atk / 1_000000_000000_000000n) / 1000);
+let borrow_apy_xlm = await GetInterestRate("xlm");
+console.log("Borrow APY XLM:", Number.parseFloat( 1000n * borrow_apy_xlm / 1_000000_000000_000000n) / 1000);
 
 // await UpdatePrice("xlm", 11_360_000n); // 0.1136 USD
 // await UpdatePrice("atk", 100_000_000n); // 1 USD
@@ -275,5 +300,14 @@ console.log("User1 xlm balance:", user1_xlm, Number.parseFloat(10000n * user1_xl
 console.log("      atk balance:", user1_atk, Number.parseFloat(10000n * user1_atk / 10_000_000n) / 10000);
 console.log("      deposit usd:", user1_deposit, Number.parseFloat(10000n * user1_deposit / 100_000_000n) / 10000);
 console.log("       borrow atk:", user1_atk_may_borrow, Number.parseFloat(10000n * user1_atk_may_borrow / 10_000_000n) / 10000);
+
+let user2_xlm = await token_balance(xlm_address, user2);
+let user2_atk = await token_balance(tokenA, user2);
+let user2_deposit = await GetUserDepositedUsd(user2);
+let user2_atk_may_borrow = await GetAvailableToBorrow(user2, "atk");
+console.log("User2 xlm balance:", user2_xlm, Number.parseFloat(10000n * user2_xlm / 10_000_000n) / 10000);
+console.log("      atk balance:", user2_atk, Number.parseFloat(10000n * user2_atk / 10_000_000n) / 10000);
+console.log("      deposit usd:", user2_deposit, Number.parseFloat(10000n * user2_deposit / 100_000_000n) / 10000);
+console.log("       borrow atk:", user2_atk_may_borrow, Number.parseFloat(10000n * user2_atk_may_borrow / 10_000_000n) / 10000);
 
 process.exit(0);
