@@ -890,7 +890,7 @@ impl LendingContract {
         let available_to_borrow_amount: u128 =
             get_available_to_borrow(env.clone(), user.clone(), denom.clone());
 
-        if amount >= available_to_borrow_amount {
+        if amount > available_to_borrow_amount {
             panic!("The amount to be borrowed is not available");
         }
 
@@ -1494,6 +1494,10 @@ impl LendingContract {
 
     pub fn GetUtilizationRateByToken(env: Env, denom: Symbol) -> u128 {
         get_utilization_rate_by_token(env, denom)
+    }
+
+    pub fn GetTotalBorrowedByToken(env: Env, denom: Symbol) -> u128 {
+        get_total_borrowed_by_token(env, denom)
     }
 
     pub fn GetTVL(env: Env) -> u128 {
