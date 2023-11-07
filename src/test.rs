@@ -1091,6 +1091,109 @@ fn test_success_liquidation() {
     assert_eq!(liquidator_deposit_amount_atom, 300000000000000000000); // 300 ATOM
 }
 
+
+#[test]
+fn test_full_borrow() {
+    const TOKENS_DECIMALS: u32 = 18;
+    const BORROW_AMOUNT_ETH: u128 = 121 * 10u128.pow(TOKENS_DECIMALS); // 121 ETH
+    const LIQUIDATOR_DEPOSIT_AMOUNT_ETH: u128 = 10_000 * 10u128.pow(TOKENS_DECIMALS); // 10_000 ETH
+    const YEAR_IN_SECONDS: u64 = 31536000;
+
+    // contract reserves: 1000 ETH
+    // user deposited 200 ETH and 300 ATOM
+    // user borrowed 50 ETH
+    let (env, contract_client, admin, user, liquidator, token_atom, token_eth) =
+        success_borrow_setup();
+
+    let mut ledger_info: LedgerInfo = env.ledger().get();
+    ledger_info.timestamp = 10000;
+    env.ledger().set(ledger_info.clone());
+
+    let user_deposited_balance_eth: u128 = contract_client.GetDeposit(&user, &symbol_short!("eth"));
+
+    assert_eq!(user_deposited_balance_eth, 200_000000000000000000); // 200 ETH
+
+    let user_deposited_balance_atom: u128 =
+        contract_client.GetDeposit(&user, &symbol_short!("atom"));
+
+    assert_eq!(user_deposited_balance_atom, 300_000000000000000000); // 300 ATOM
+
+    let user_collateral_usd: u128 = contract_client.GetUserCollateralUsd(&user);
+
+    // 200 ETH * 2000 + 300 ATOM * 10 == 403_000$
+    assert_eq!(user_collateral_usd, 403_00000000000);
+
+    let reserve_configuration_atom: ReserveConfiguration =
+        contract_client.GetReserveConfiguration(&symbol_short!("atom"));
+
+    assert_eq!(reserve_configuration_atom.loan_to_value_ratio, 7500000); // ltv_atom = 75%
+
+    let reserve_configuration_eth: ReserveConfiguration =
+        contract_client.GetReserveConfiguration(&symbol_short!("eth"));
+
+    assert_eq!(reserve_configuration_eth.loan_to_value_ratio, 8500000); // ltv_eth = 85%
+
+    let user_max_allowed_borrow_amount_usd: u128 =
+        contract_client.GetUserMaxAllowedBorrowAmountUsd(&user);
+
+    // 200 ETH * 0.85 * 2000 + 300 ATOM * 0.75 * 10 == 340_000 + 2_250 = 342_250$
+    assert_eq!(user_max_allowed_borrow_amount_usd, 342_250_00000000);
+
+    let user_borrowed_usd: u128 = contract_client.GetUserBorrowedUsd(&user);
+
+    assert_eq!(user_borrowed_usd, 100_000_00000000); // 50 ETH * 2000 = 100_000$
+
+    let available_to_borrow_eth: u128 =
+        contract_client.GetAvailableToBorrow(&user, &symbol_short!("eth"));
+
+    // (user_max_allowed_borrow_amount_usd - user_borrowed_usd) / price =
+    // (342_250$ - 100_000$) / price = 242_250$ / price
+    assert_eq!(available_to_borrow_eth, 121125000000000000000); // 242_250$ / 2000 == 121.125 ETH
+
+    contract_client.Borrow(&user, &symbol_short!("eth"), &BORROW_AMOUNT_ETH);
+
+    let available_to_borrow_eth: u128 =
+        contract_client.GetAvailableToBorrow(&user, &symbol_short!("eth"));
+
+    assert_eq!(available_to_borrow_eth, 125000000000000000); // 0.125 ETH
+
+    // TEST Full Borrow
+    contract_client.Borrow(&user, &symbol_short!("eth"), &available_to_borrow_eth);
+    let available_to_borrow_eth: u128 =
+        contract_client.GetAvailableToBorrow(&user, &symbol_short!("eth"));
+    assert_eq!(available_to_borrow_eth, 0); // 0 ETH
+}
+
+
+#[test]
+fn test_redeem() {
+    // contract reserves: 1000 ETH and 1000 ATOM
+    // user deposited 200 ETH and 300 ATOM
+    let (env, contract_client, admin, user) =
+        success_deposit_as_collateral_of_diff_token_with_prices();
+
+    const TOKENS_DECIMALS: u32 = 18;
+    const DEPOSIT_AMOUNT_ETH: u128 = 200 * 10u128.pow(TOKENS_DECIMALS);
+    const DEPOSIT_AMOUNT_ATOM: u128 = 300 * 10u128.pow(TOKENS_DECIMALS);
+    env.budget().reset_unlimited();
+    let available_to_redeem_eth: u128 =
+        contract_client.GetAvailableToRedeem(&user, &symbol_short!("eth"));
+    println!("CPU costs");
+    println!(
+        "      GetAvailableToRedeem eth : {:?}",
+        env.budget().cpu_instruction_cost()
+    );
+    env.budget().reset_unlimited();
+    let available_to_redeem_atom: u128 =
+        contract_client.GetAvailableToRedeem(&user, &symbol_short!("atom"));
+    println!(
+        "      GetAvailableToRedeem atom: {:?}",
+        env.budget().cpu_instruction_cost()
+    );
+    assert_eq!(available_to_redeem_eth, DEPOSIT_AMOUNT_ETH); // 200 ETH
+    assert_eq!(available_to_redeem_atom, DEPOSIT_AMOUNT_ATOM); // 300 ATOM
+}
+
 #[test]
 fn test_budget() {
     let env = Env::default();
