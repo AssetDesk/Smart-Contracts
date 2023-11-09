@@ -4,3 +4,5 @@ target
 .env
 node_modules
 vendor
+contracts/lending/target
+contracts/margin_positions/target
