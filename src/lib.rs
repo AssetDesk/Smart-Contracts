@@ -6,7 +6,7 @@ use crate::types::{
     TotalBorrowData, UserBorrowingInfo, MONTH_BUMP_AMOUNT, MONTH_LIFETIME_THRESHOLD,
 };
 
-use soroban_sdk::{contract, contractimpl, token, Address, Env, Symbol, Vec, symbol_short}; // contracterror, panic_with_error, vec
+use soroban_sdk::{contract, contractimpl, token, Address, Env, Symbol, Vec, symbol_short, Map, map}; // contracterror, panic_with_error, vec
 
 use core::ops::{Add, Div, Mul};
 use rust_decimal::prelude::{Decimal, MathematicalOps, ToPrimitive};
@@ -110,21 +110,21 @@ fn get_deposit(env: Env, user: Address, denom: Symbol) -> u128 {
 
 fn get_available_liquidity_by_token(env: Env, denom: Symbol) -> u128 {
     let contract_address = env.current_contract_address();
-    let token_info: TokenInfo = env
+    let token_info: Map<Symbol, TokenInfo> = env
         .storage()
         .persistent()
-        .get(&DataKey::SUPPORTED_TOKENS(denom.clone()))
-        .unwrap();
-    token_balance(&env, &token_info.address, &contract_address) as u128
+        .get(&DataKey::SUPPORTED_TOKENS)
+        .unwrap_or(Map::new(&env));
+    token_balance(&env, &token_info.get(denom).unwrap().address, &contract_address) as u128
 }
 
 fn get_total_borrow_data(env: Env, denom: Symbol) -> TotalBorrowData {
-    let total_borrow_data: TotalBorrowData = env
+    let total_borrow_data: Map<Symbol, TotalBorrowData> = env
         .storage()
         .persistent()
-        .get(&DataKey::TOTAL_BORROW_DATA(denom.clone()))
-        .unwrap();
-    total_borrow_data
+        .get(&DataKey::TOTAL_BORROW_DATA)
+        .unwrap_or(Map::new(&env));
+    total_borrow_data.get(denom).unwrap()
 }
 
 fn get_interest_rate(env: Env, denom: Symbol) -> u128 {
@@ -153,21 +153,21 @@ fn get_interest_rate(env: Env, denom: Symbol) -> u128 {
 }
 
 fn get_token_decimal(env: Env, denom: Symbol) -> u32 {
-    let token_info: TokenInfo = env
+    let token_info: Map<Symbol, TokenInfo> = env
         .storage()
         .persistent()
-        .get(&DataKey::SUPPORTED_TOKENS(denom.clone()))
+        .get(&DataKey::SUPPORTED_TOKENS)
         .unwrap();
-    token_info.decimals
+    token_info.get(denom).unwrap().decimals
 }
 
 fn get_token_address(env: Env, denom: Symbol) -> Address {
-    let token_info: TokenInfo = env
+    let token_info: Map<Symbol, TokenInfo> = env
         .storage()
         .persistent()
-        .get(&DataKey::SUPPORTED_TOKENS(denom.clone()))
+        .get(&DataKey::SUPPORTED_TOKENS)
         .unwrap();
-    token_info.address
+    token_info.get(denom).unwrap().address
 }
 
 fn get_supported_tokens(env: Env) -> Vec<Symbol> {
@@ -423,20 +423,20 @@ fn get_mm_token_price(env: Env, denom: Symbol) -> u128 {
 }
 
 fn user_deposit_as_collateral(env: Env, user: Address, denom: Symbol) -> bool {
-    // let use_user_deposit_as_collateral: bool = env
-    //     .storage()
-    //     .persistent()
-    //     .get(&DataKey::USER_DEPOSIT_AS_COLLATERAL(
-    //         user.clone(),
-    //         denom.clone(),
-    //     ))
-    //     .unwrap_or(false);
+    let use_user_deposit_as_collateral: bool = env
+        .storage()
+        .persistent()
+        .get(&DataKey::USER_DEPOSIT_AS_COLLATERAL(
+            user.clone(),
+            denom.clone(),
+        ))
+        .unwrap_or(false);
 
-    // POC: Only xlm is used as a collateral
-    let mut use_user_deposit_as_collateral: bool = false;
-    if denom == symbol_short!("xlm") {
-        use_user_deposit_as_collateral = true;
-    }
+    // // POC: Only xlm is used as a collateral
+    // let mut use_user_deposit_as_collateral: bool = false;
+    // if denom == symbol_short!("xlm") {
+    //     use_user_deposit_as_collateral = true;
+    // }
 
     use_user_deposit_as_collateral
 }
@@ -743,11 +743,18 @@ impl LendingContract {
             symbol: denom.clone(),
             decimals,
         };
+
+        let mut supported_tokens_info: Map<Symbol, TokenInfo> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::SUPPORTED_TOKENS)
+            .unwrap_or(Map::new(&env));
+        supported_tokens_info.set(denom.clone(), token_info);
         env.storage()
             .persistent()
-            .set(&DataKey::SUPPORTED_TOKENS(denom.clone()), &token_info);
+            .set(&DataKey::SUPPORTED_TOKENS, &supported_tokens_info);
         env.storage().persistent().bump(
-            &DataKey::SUPPORTED_TOKENS(denom.clone()),
+            &DataKey::SUPPORTED_TOKENS,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
         );
@@ -792,12 +799,16 @@ impl LendingContract {
             average_interest_rate: 0_u128,
             timestamp: env.ledger().timestamp(),
         };
+
+        let mut total_borrow_map: Map<Symbol, TotalBorrowData> = env.storage().persistent().get(
+            &DataKey::TOTAL_BORROW_DATA).unwrap_or(Map::new(&env));
+        total_borrow_map.set(denom.clone(), total_borrow_data);
         env.storage().persistent().set(
-            &DataKey::TOTAL_BORROW_DATA(denom.clone()),
-            &total_borrow_data,
+            &DataKey::TOTAL_BORROW_DATA,
+            &total_borrow_map,
         );
         env.storage().persistent().bump(
-            &DataKey::TOTAL_BORROW_DATA(denom.clone()),
+            &DataKey::TOTAL_BORROW_DATA,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
         );
@@ -836,64 +847,62 @@ impl LendingContract {
     pub fn ToggleCollateralSetting(env: Env, user: Address, denom: Symbol) {
         user.require_auth();
 
-        // POC: Only xlm is used as a collateral
-
         let use_user_deposit_as_collateral =
             user_deposit_as_collateral(env.clone(), user.clone(), denom.clone());
 
-        // if use_user_deposit_as_collateral {
-        //     let user_token_balance: u128 = get_deposit(env.clone(), user.clone(), denom.clone());
+        if use_user_deposit_as_collateral {
+            let user_token_balance: u128 = get_deposit(env.clone(), user.clone(), denom.clone());
 
-        //     if user_token_balance != 0 {
-        //         let token_decimals = get_token_decimal(env.clone(), denom.clone());
+            if user_token_balance != 0 {
+                let token_decimals = get_token_decimal(env.clone(), denom.clone());
 
-        //         let price = fetch_price_by_token(env.clone(), denom.clone());
+                let price = fetch_price_by_token(env.clone(), denom.clone());
 
-        //         let user_token_balance_usd =
-        //             Decimal::from_i128_with_scale(user_token_balance as i128, token_decimals)
-        //                 .mul(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
-        //                 .to_u128_with_decimals(USD_DECIMALS)
-        //                 .unwrap();
+                let user_token_balance_usd =
+                    Decimal::from_i128_with_scale(user_token_balance as i128, token_decimals)
+                        .mul(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
+                        .to_u128_with_decimals(USD_DECIMALS)
+                        .unwrap();
 
-        //         let sum_collateral_balance_usd = get_user_collateral_usd(env.clone(), user.clone());
+                let sum_collateral_balance_usd = get_user_collateral_usd(env.clone(), user.clone());
 
-        //         let sum_borrow_balance_usd = get_user_borrowed_usd(env.clone(), user.clone());
+                let sum_borrow_balance_usd = get_user_borrowed_usd(env.clone(), user.clone());
 
-        //         let user_liquidation_threshold =
-        //             get_user_liquidation_threshold(env.clone(), user.clone());
+                let user_liquidation_threshold =
+                    get_user_liquidation_threshold(env.clone(), user.clone());
 
-        //         assert!(
-        //             sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold < sum_collateral_balance_usd - user_token_balance_usd,
-        //             "The collateral has already using to collateralise the borrowing. Not enough available balance"
-        //         );
-        //     }
-        // }
+                assert!(
+                    sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold < sum_collateral_balance_usd - user_token_balance_usd,
+                    "The collateral has already using to collateralise the borrowing. Not enough available balance"
+                );
+            }
+        }
 
-        // env.storage().persistent().set(
-        //     &DataKey::USER_DEPOSIT_AS_COLLATERAL(user.clone(), denom.clone()),
-        //     &!use_user_deposit_as_collateral,
-        // );
-        // env.storage().persistent().bump(
-        //     &DataKey::USER_DEPOSIT_AS_COLLATERAL(user.clone(), denom.clone()),
-        //     MONTH_LIFETIME_THRESHOLD,
-        //     MONTH_BUMP_AMOUNT,
-        // );
+        env.storage().persistent().set(
+            &DataKey::USER_DEPOSIT_AS_COLLATERAL(user.clone(), denom.clone()),
+            &!use_user_deposit_as_collateral,
+        );
+        env.storage().persistent().bump(
+            &DataKey::USER_DEPOSIT_AS_COLLATERAL(user.clone(), denom.clone()),
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
+        );
     }
 
     pub fn Borrow(env: Env, user: Address, denom: Symbol, amount: u128) {
         user.require_auth();
 
-        let liquidator = read_liquidator(&env);
+        // let liquidator = read_liquidator(&env);
 
-        if user == liquidator {
-            panic!("The liquidator cannot borrow");
-        }
+        // if user == liquidator {
+        //     panic!("The liquidator cannot borrow");
+        // }
 
-        let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+        // let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
 
-        if !supported_tokens.contains(denom.clone()) {
-            panic!("There is no such supported token yet");
-        }
+        // if !supported_tokens.contains(denom.clone()) {
+        //     panic!("There is no such supported token yet");
+        // }
 
         let available_to_borrow_amount: u128 =
             get_available_to_borrow(env.clone(), user.clone(), denom.clone());
@@ -1012,12 +1021,15 @@ impl LendingContract {
             MONTH_BUMP_AMOUNT,
         );
 
+        let mut total_borrow_map: Map<Symbol, TotalBorrowData> = env.storage().persistent().get(
+            &DataKey::TOTAL_BORROW_DATA).unwrap_or(Map::new(&env));
+        total_borrow_map.set(denom.clone(), new_total_borrow_data);
         env.storage().persistent().set(
-            &DataKey::TOTAL_BORROW_DATA(denom.clone()),
-            &new_total_borrow_data,
+            &DataKey::TOTAL_BORROW_DATA,
+            &total_borrow_map,
         );
         env.storage().persistent().bump(
-            &DataKey::TOTAL_BORROW_DATA(denom.clone()),
+            &DataKey::TOTAL_BORROW_DATA,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
         );
@@ -1031,16 +1043,14 @@ impl LendingContract {
         )
     }
 
-    pub fn Redeem(env: Env, user: Address, denom: Symbol, amount: u128) {
+    pub fn Redeem(env: Env, user: Address, denom: Symbol, mut amount: u128) {
         user.require_auth();
 
-        // assert!(amount > 0, "Amount should be a positive number");
+        // let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
 
-        let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
-
-        if !supported_tokens.contains(denom.clone()) {
-            panic!("There is no such supported token yet");
-        }
+        // if !supported_tokens.contains(denom.clone()) {
+        //     panic!("There is no such supported token yet");
+        // }
 
         execute_update_liquidity_index_data(env.clone(), denom.clone());
 
@@ -1048,6 +1058,10 @@ impl LendingContract {
 
         if amount > current_balance {
             panic!("The account doesn't have enough digital tokens to do withdraw");
+        }
+
+        if amount == 0 {
+            amount = current_balance;
         }
 
         let remaining: u128 = current_balance - amount;
@@ -1096,11 +1110,11 @@ impl LendingContract {
             repay_amount.clone() as i128,
         );
 
-        let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+        // let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
 
-        if !supported_tokens.contains(repay_token.clone()) {
-            panic!("There is no such supported token yet");
-        }
+        // if !supported_tokens.contains(repay_token.clone()) {
+        //     panic!("There is no such supported token yet");
+        // }
 
         let user_borrowing_info =
             get_user_borrowing_info(env.clone(), user.clone(), repay_token.clone());
@@ -1109,6 +1123,10 @@ impl LendingContract {
 
         let user_borrow_amount_with_interest =
             get_user_borrow_amount_with_interest(env.clone(), user.clone(), repay_token.clone());
+
+        if repay_amount == 0 {
+            repay_amount = user_borrow_amount_with_interest;
+        }
 
         let mut remaining_amount: u128 = 0u128;
         let mut average_interest_rate: u128 = user_borrowing_info.average_interest_rate;
@@ -1186,12 +1204,15 @@ impl LendingContract {
             MONTH_BUMP_AMOUNT,
         );
 
+        let mut total_borrow_map: Map<Symbol, TotalBorrowData> = env.storage().persistent().get(
+            &DataKey::TOTAL_BORROW_DATA).unwrap_or(Map::new(&env));
+        total_borrow_map.set(repay_token.clone(), new_total_borrow_data);
         env.storage().persistent().set(
-            &DataKey::TOTAL_BORROW_DATA(repay_token.clone()),
-            &new_total_borrow_data,
+            &DataKey::TOTAL_BORROW_DATA,
+            &total_borrow_map,
         );
         env.storage().persistent().bump(
-            &DataKey::TOTAL_BORROW_DATA(repay_token.clone()),
+            &DataKey::TOTAL_BORROW_DATA,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
         );
@@ -1317,12 +1338,14 @@ impl LendingContract {
                         MONTH_LIFETIME_THRESHOLD,
                         MONTH_BUMP_AMOUNT,
                     );
+                    let mut total_borrow_map: Map<Symbol, TotalBorrowData> = env.storage().persistent().get( &DataKey::TOTAL_BORROW_DATA).unwrap_or(Map::new(&env));
+                    total_borrow_map.set(token.clone(), new_total_borrow_data);
                     env.storage().persistent().set(
-                        &DataKey::TOTAL_BORROW_DATA(token.clone()),
-                        &new_total_borrow_data,
+                        &DataKey::TOTAL_BORROW_DATA,
+                        &total_borrow_map,
                     );
                     env.storage().persistent().bump(
-                        &DataKey::TOTAL_BORROW_DATA(token.clone()),
+                        &DataKey::TOTAL_BORROW_DATA,
                         MONTH_LIFETIME_THRESHOLD,
                         MONTH_BUMP_AMOUNT,
                     );

@@ -15,8 +15,8 @@ pub(crate) const MONTH_LIFETIME_THRESHOLD: u32 = MONTH_BUMP_AMOUNT - DAY_IN_LEDG
 pub enum DataKey {
     Admin,                                       // Address of the Contract admin account
     Liquidator,                                  // Address of the liquidator account
-    TOTAL_BORROW_DATA(Symbol),                   // TotalBorrowData per denom
-    SUPPORTED_TOKENS(Symbol),                    // TokenInfo denom data
+    TOTAL_BORROW_DATA,                   // Map of TotalBorrowData per denom
+    SUPPORTED_TOKENS,                    // Map of TokenInfo denom data
     SUPPORTED_TOKENS_LIST,                       // List of supported tokens
     LIQUIDITY_INDEX_DATA(Symbol),                // LiquidityIndexData per denom
     USER_MM_TOKEN_BALANCE(Address, Symbol),      // user mm token balance per denom
