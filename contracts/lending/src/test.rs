@@ -46,8 +46,8 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
     const PERCENT_DECIMALS: u32 = 5;
     const LTV_ETH: u128 = 85 * 10u128.pow(PERCENT_DECIMALS); // 85%
     const LIQUIDATION_THRESHOLD_ETH: u128 = 90 * 10u128.pow(PERCENT_DECIMALS); // 90%
-    const LTV_ATOM: u128 = 75 * 10u128.pow(PERCENT_DECIMALS); // 75%
-    const LIQUIDATION_THRESHOLD_ATOM: u128 = 80 * 10u128.pow(PERCENT_DECIMALS); // 80%
+    const LTV_XLM: u128 = 75 * 10u128.pow(PERCENT_DECIMALS); // 75%
+    const LIQUIDATION_THRESHOLD_XLM: u128 = 80 * 10u128.pow(PERCENT_DECIMALS); // 80%
 
     const INTEREST_RATE_DECIMALS: u32 = 18;
     const MIN_INTEREST_RATE: u128 = 5 * 10u128.pow(INTEREST_RATE_DECIMALS);
@@ -68,13 +68,13 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
 
     contract_client.initialize(&admin, &liquidator);
 
-    let token_atom = create_custom_token(&env, &admin, "Atom", "atom", &TOKENS_DECIMALS);
+    let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
 
-    // token_atom.mint(&user1, &i128::try_from(INIT_USER_BALANCE).unwrap());
+    // token_xlm.mint(&user1, &i128::try_from(INIT_USER_BALANCE).unwrap());
     token_eth.mint(&user1, &i128::try_from(INIT_USER_BALANCE).unwrap());
 
-    // token_atom.mint(&admin, &i128::try_from(CONTRACT_RESERVES * 100).unwrap());
+    // token_xlm.mint(&admin, &i128::try_from(CONTRACT_RESERVES * 100).unwrap());
     token_eth.mint(&admin, &i128::try_from(CONTRACT_RESERVES).unwrap());
 
     token_eth.mint(
@@ -83,12 +83,12 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
     );
 
     contract_client.add_markets(
-        &symbol_short!("atom"),
-        &token_atom.address,
-        &symbol_short!("Atom"),
+        &symbol_short!("xlm"),
+        &token_xlm.address,
+        &symbol_short!("Xlm"),
         &TOKENS_DECIMALS,
-        &LTV_ATOM,
-        &LIQUIDATION_THRESHOLD_ATOM,
+        &LTV_XLM,
+        &LIQUIDATION_THRESHOLD_XLM,
         &MIN_INTEREST_RATE,
         &SAFE_BORROW_MAX_RATE,
         &RATE_GROWTH_FACTOR,
@@ -109,14 +109,14 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
     );
 
     // Funding contract
-    // token_atom.transfer(&admin, &contract_address, &i128::try_from(CONTRACT_RESERVES).unwrap());
+    // token_xlm.transfer(&admin, &contract_address, &i128::try_from(CONTRACT_RESERVES).unwrap());
     token_eth.transfer(
         &admin,
         &contract_address,
         &i128::try_from(CONTRACT_RESERVES).unwrap(),
     );
 
-    // contract_client.update_price(&symbol_short!("atom"), &PRICE_ATOM);
+    // contract_client.update_price(&symbol_short!("xlm"), &PRICE_XLM);
     // contract_client.update_price(&symbol_short!("eth"), &PRICE_ETH);
 
     contract_client.deposit(&user1, &symbol_short!("eth"), &FIRST_DEPOSIT_AMOUNT_ETH);
@@ -164,22 +164,22 @@ pub fn success_deposit_of_diff_token_with_prices(
     const TOKENS_DECIMALS: u32 = 18;
 
     const INIT_BALANCE_ETH: u128 = 1000 * 10u128.pow(TOKENS_DECIMALS);
-    const INIT_BALANCE_ATOM: u128 = 1_000_000 * 10u128.pow(TOKENS_DECIMALS); // 1M ATOM
+    const INIT_BALANCE_XLM: u128 = 1_000_000 * 10u128.pow(TOKENS_DECIMALS); // 1M XLM
 
     const INIT_LIQUIDATOR_BALANCE_ETH: u128 = 1_000_000 * 10u128.pow(TOKENS_DECIMALS); // 1M ETH
-    const INIT_LIQUIDATOR_BALANCE_ATOM: u128 = 1_000_000 * 10u128.pow(TOKENS_DECIMALS); // 1M ATOM
+    const INIT_LIQUIDATOR_BALANCE_XLM: u128 = 1_000_000 * 10u128.pow(TOKENS_DECIMALS); // 1M XLM
 
     const DEPOSIT_AMOUNT_ETH: u128 = 200 * 10u128.pow(TOKENS_DECIMALS);
-    const DEPOSIT_AMOUNT_ATOM: u128 = 300 * 10u128.pow(TOKENS_DECIMALS);
+    const DEPOSIT_AMOUNT_XLM: u128 = 300 * 10u128.pow(TOKENS_DECIMALS);
 
     const CONTRACT_RESERVES_ETH: u128 = 1000 * 10u128.pow(TOKENS_DECIMALS);
-    const CONTRACT_RESERVES_ATOM: u128 = 1000 * 10u128.pow(TOKENS_DECIMALS);
+    const CONTRACT_RESERVES_XLM: u128 = 1000 * 10u128.pow(TOKENS_DECIMALS);
 
     const PERCENT_DECIMALS: u32 = 5;
     const LTV_ETH: u128 = 85 * 10u128.pow(PERCENT_DECIMALS); // 85%
     const LIQUIDATION_THRESHOLD_ETH: u128 = 90 * 10u128.pow(PERCENT_DECIMALS); // 90%
-    const LTV_ATOM: u128 = 75 * 10u128.pow(PERCENT_DECIMALS); // 75%
-    const LIQUIDATION_THRESHOLD_ATOM: u128 = 80 * 10u128.pow(PERCENT_DECIMALS); // 80%
+    const LTV_XLM: u128 = 75 * 10u128.pow(PERCENT_DECIMALS); // 75%
+    const LIQUIDATION_THRESHOLD_XLM: u128 = 80 * 10u128.pow(PERCENT_DECIMALS); // 80%
 
     const INTEREST_RATE_DECIMALS: u32 = 18;
     const MIN_INTEREST_RATE: u128 = 5 * 10u128.pow(INTEREST_RATE_DECIMALS);
@@ -190,7 +190,7 @@ pub fn success_deposit_of_diff_token_with_prices(
 
     const PRICE_DECIMALS: u32 = 8;
     const PRICE_ETH: u128 = 2000 * 10u128.pow(PRICE_DECIMALS);
-    const PRICE_ATOM: u128 = 10 * 10u128.pow(PRICE_DECIMALS);
+    const PRICE_XLM: u128 = 10 * 10u128.pow(PRICE_DECIMALS);
 
     let env = Env::default();
     env.mock_all_auths();
@@ -204,18 +204,18 @@ pub fn success_deposit_of_diff_token_with_prices(
 
     contract_client.initialize(&admin, &liquidator);
 
-    let token_atom = create_custom_token(&env, &admin, "Atom", "atom", &TOKENS_DECIMALS);
+    let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
 
-    token_atom.mint(&user1, &i128::try_from(INIT_BALANCE_ATOM).unwrap());
+    token_xlm.mint(&user1, &i128::try_from(INIT_BALANCE_XLM).unwrap());
     token_eth.mint(&user1, &i128::try_from(INIT_BALANCE_ETH).unwrap());
 
-    token_atom.mint(&admin, &i128::try_from(INIT_BALANCE_ATOM).unwrap());
+    token_xlm.mint(&admin, &i128::try_from(INIT_BALANCE_XLM).unwrap());
     token_eth.mint(&admin, &i128::try_from(INIT_BALANCE_ETH).unwrap());
 
-    token_atom.mint(
+    token_xlm.mint(
         &liquidator,
-        &i128::try_from(INIT_LIQUIDATOR_BALANCE_ATOM).unwrap(),
+        &i128::try_from(INIT_LIQUIDATOR_BALANCE_XLM).unwrap(),
     );
     token_eth.mint(
         &liquidator,
@@ -223,12 +223,12 @@ pub fn success_deposit_of_diff_token_with_prices(
     );
 
     contract_client.add_markets(
-        &symbol_short!("atom"),
-        &token_atom.address,
-        &symbol_short!("Atom"),
+        &symbol_short!("xlm"),
+        &token_xlm.address,
+        &symbol_short!("Xlm"),
         &TOKENS_DECIMALS,
-        &LTV_ATOM,
-        &LIQUIDATION_THRESHOLD_ATOM,
+        &LTV_XLM,
+        &LIQUIDATION_THRESHOLD_XLM,
         &MIN_INTEREST_RATE,
         &SAFE_BORROW_MAX_RATE,
         &RATE_GROWTH_FACTOR,
@@ -249,10 +249,10 @@ pub fn success_deposit_of_diff_token_with_prices(
     );
 
     // Funding contract
-    token_atom.transfer(
+    token_xlm.transfer(
         &admin,
         &contract_address,
-        &i128::try_from(CONTRACT_RESERVES_ATOM).unwrap(),
+        &i128::try_from(CONTRACT_RESERVES_XLM).unwrap(),
     );
     token_eth.transfer(
         &admin,
@@ -260,13 +260,13 @@ pub fn success_deposit_of_diff_token_with_prices(
         &i128::try_from(CONTRACT_RESERVES_ETH).unwrap(),
     );
 
-    contract_client.update_price(&symbol_short!("atom"), &PRICE_ATOM);
+    contract_client.update_price(&symbol_short!("atom"), &PRICE_XLM);
     contract_client.update_price(&symbol_short!("eth"), &PRICE_ETH);
 
-    let get_price_atom: u128 = contract_client.get_price(&symbol_short!("atom"));
+    let get_price_xlm: u128 = contract_client.get_price(&symbol_short!("xlm"));
     let get_price_eth: u128 = contract_client.get_price(&symbol_short!("eth"));
 
-    assert_eq!(get_price_atom, 1000000000); // 10$
+    assert_eq!(get_price_xlm, 1000000000); // 10$
     assert_eq!(get_price_eth, 200000000000); // 2000$
 
     contract_client.deposit(&user1, &symbol_short!("eth"), &DEPOSIT_AMOUNT_ETH);
@@ -284,18 +284,18 @@ pub fn success_deposit_of_diff_token_with_prices(
         (CONTRACT_RESERVES_ETH + DEPOSIT_AMOUNT_ETH) as i128
     );
 
-    contract_client.deposit(&user1, &symbol_short!("atom"), &DEPOSIT_AMOUNT_ATOM);
+    contract_client.deposit(&user1, &symbol_short!("xlm"), &DEPOSIT_AMOUNT_XLM);
 
-    user_deposited_balance = contract_client.get_deposit(&user1, &symbol_short!("atom"));
+    user_deposited_balance = contract_client.get_deposit(&user1, &symbol_short!("xlm"));
 
-    assert_eq!(user_deposited_balance, DEPOSIT_AMOUNT_ATOM);
+    assert_eq!(user_deposited_balance, DEPOSIT_AMOUNT_XLM);
     assert_eq!(
-        token_atom.balance(&user1),
-        (INIT_BALANCE_ATOM - DEPOSIT_AMOUNT_ATOM) as i128
+        token_xlm.balance(&user1),
+        (INIT_BALANCE_XLM - DEPOSIT_AMOUNT_XLM) as i128
     );
     assert_eq!(
-        token_atom.balance(&contract_address),
-        (CONTRACT_RESERVES_ATOM + DEPOSIT_AMOUNT_ATOM) as i128
+        token_xlm.balance(&contract_address),
+        (CONTRACT_RESERVES_XLM + DEPOSIT_AMOUNT_XLM) as i128
     );
 
     (env, contract_client, admin, user1)
@@ -306,10 +306,10 @@ pub fn success_deposit_as_collateral_of_diff_token_with_prices(
     let (env, contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
 
     contract_client.toggle_collateral_setting(&user, &symbol_short!("eth"));
-    contract_client.toggle_collateral_setting(&user, &symbol_short!("atom"));
+    contract_client.toggle_collateral_setting(&user, &symbol_short!("xlm"));
 
     contract_client.toggle_collateral_setting(&admin, &symbol_short!("eth"));
-    contract_client.toggle_collateral_setting(&admin, &symbol_short!("atom"));
+    contract_client.toggle_collateral_setting(&admin, &symbol_short!("xlm"));
 
     (env, contract_client, admin, user)
 }
@@ -326,25 +326,25 @@ pub fn success_borrow_setup() -> (
     const TOKENS_DECIMALS: u32 = 18;
 
     const INIT_BALANCE_ETH: u128 = 10_000 * 10u128.pow(TOKENS_DECIMALS); // 10_000 ETH
-    const INIT_BALANCE_ATOM: u128 = 10_000 * 10u128.pow(TOKENS_DECIMALS); // 10_000 ATOM
+    const INIT_BALANCE_XLM: u128 = 10_000 * 10u128.pow(TOKENS_DECIMALS); // 10_000 XLM
     const INIT_BALANCE_USDT: u128 = 10_000 * 10u128.pow(TOKENS_DECIMALS); // 10_000 USDT
 
     const INIT_LIQUIDATOR_BALANCE_ETH: u128 = 1_000_000 * 10u128.pow(TOKENS_DECIMALS); // 1M ETH
-    const INIT_LIQUIDATOR_BALANCE_ATOM: u128 = 1_000_000 * 10u128.pow(TOKENS_DECIMALS); // 1M ATOM
+    const INIT_LIQUIDATOR_BALANCE_XLM: u128 = 1_000_000 * 10u128.pow(TOKENS_DECIMALS); // 1M XLM
 
     const DEPOSIT_AMOUNT_ETH: u128 = 200 * 10u128.pow(TOKENS_DECIMALS);
-    const DEPOSIT_AMOUNT_ATOM: u128 = 300 * 10u128.pow(TOKENS_DECIMALS);
+    const DEPOSIT_AMOUNT_XLM: u128 = 300 * 10u128.pow(TOKENS_DECIMALS);
 
     const CONTRACT_RESERVES_ETH: u128 = 1000 * 10u128.pow(TOKENS_DECIMALS);
-    const CONTRACT_RESERVES_ATOM: u128 = 1000 * 10u128.pow(TOKENS_DECIMALS);
+    const CONTRACT_RESERVES_XLM: u128 = 1000 * 10u128.pow(TOKENS_DECIMALS);
 
     const BORROW_AMOUNT_ETH: u128 = 50 * 10u128.pow(TOKENS_DECIMALS);
 
     const PERCENT_DECIMALS: u32 = 5;
     const LTV_ETH: u128 = 85 * 10u128.pow(PERCENT_DECIMALS); // 85%
     const LIQUIDATION_THRESHOLD_ETH: u128 = 90 * 10u128.pow(PERCENT_DECIMALS); // 90%
-    const LTV_ATOM: u128 = 75 * 10u128.pow(PERCENT_DECIMALS); // 75%
-    const LIQUIDATION_THRESHOLD_ATOM: u128 = 80 * 10u128.pow(PERCENT_DECIMALS); // 80%
+    const LTV_XLM: u128 = 75 * 10u128.pow(PERCENT_DECIMALS); // 75%
+    const LIQUIDATION_THRESHOLD_XLM: u128 = 80 * 10u128.pow(PERCENT_DECIMALS); // 80%
 
     const INTEREST_RATE_DECIMALS: u32 = 18;
     const MIN_INTEREST_RATE: u128 = 5 * 10u128.pow(INTEREST_RATE_DECIMALS);
@@ -355,7 +355,7 @@ pub fn success_borrow_setup() -> (
 
     const PRICE_DECIMALS: u32 = 8;
     const PRICE_ETH: u128 = 2000 * 10u128.pow(PRICE_DECIMALS);
-    const PRICE_ATOM: u128 = 10 * 10u128.pow(PRICE_DECIMALS);
+    const PRICE_XLM: u128 = 10 * 10u128.pow(PRICE_DECIMALS);
 
     let env = Env::default();
     env.mock_all_auths();
@@ -369,20 +369,20 @@ pub fn success_borrow_setup() -> (
 
     contract_client.initialize(&admin, &liquidator);
 
-    let token_atom = create_custom_token(&env, &admin, "Atom", "atom", &TOKENS_DECIMALS);
+    let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
     let token_usdt = create_custom_token(&env, &admin, "USDT", "usdt", &TOKENS_DECIMALS);
 
-    token_atom.mint(&user1, &i128::try_from(INIT_BALANCE_ATOM).unwrap());
+    token_xlm.mint(&user1, &i128::try_from(INIT_BALANCE_XLM).unwrap());
     token_eth.mint(&user1, &i128::try_from(INIT_BALANCE_ETH).unwrap());
     token_usdt.mint(&user1, &i128::try_from(INIT_BALANCE_ETH).unwrap());
 
-    token_atom.mint(&admin, &i128::try_from(CONTRACT_RESERVES_ETH).unwrap());
+    token_xlm.mint(&admin, &i128::try_from(CONTRACT_RESERVES_ETH).unwrap());
     token_eth.mint(&admin, &i128::try_from(CONTRACT_RESERVES_ETH).unwrap());
 
-    token_atom.mint(
+    token_xlm.mint(
         &liquidator,
-        &i128::try_from(INIT_LIQUIDATOR_BALANCE_ATOM).unwrap(),
+        &i128::try_from(INIT_LIQUIDATOR_BALANCE_XLM).unwrap(),
     );
     token_eth.mint(
         &liquidator,
@@ -390,12 +390,11 @@ pub fn success_borrow_setup() -> (
     );
 
     contract_client.add_markets(
-        &symbol_short!("atom"),
+        &symbol_short!("xlm"),
         &token_atom.address,
-        &symbol_short!("Atom"),
-        &TOKENS_DECIMALS,
-        &LTV_ATOM,
-        &LIQUIDATION_THRESHOLD_ATOM,
+        &symbol_short!("xlm"),
+        &LTV_XLM,
+        &LIQUIDATION_THRESHOLD_XLM,
         &MIN_INTEREST_RATE,
         &SAFE_BORROW_MAX_RATE,
         &RATE_GROWTH_FACTOR,
@@ -416,10 +415,10 @@ pub fn success_borrow_setup() -> (
     );
 
     // Funding contract
-    token_atom.transfer(
+    token_xlm.transfer(
         &admin,
         &contract_address,
-        &i128::try_from(CONTRACT_RESERVES_ATOM).unwrap(),
+        &i128::try_from(CONTRACT_RESERVES_XLM).unwrap(),
     );
     token_eth.transfer(
         &admin,
@@ -427,20 +426,20 @@ pub fn success_borrow_setup() -> (
         &i128::try_from(CONTRACT_RESERVES_ETH).unwrap(),
     );
 
-    contract_client.update_price(&symbol_short!("atom"), &PRICE_ATOM);
+    contract_client.update_price(&symbol_short!("xlm"), &PRICE_XLM);
     contract_client.update_price(&symbol_short!("eth"), &PRICE_ETH);
 
-    let get_price_atom: u128 = contract_client.get_price(&symbol_short!("atom"));
+    let get_price_xlm: u128 = contract_client.get_price(&symbol_short!("xlm"));
     let get_price_eth: u128 = contract_client.get_price(&symbol_short!("eth"));
 
-    assert_eq!(get_price_atom, 1000000000); // 10$
+    assert_eq!(get_price_xlm, 1000000000); // 10$
     assert_eq!(get_price_eth, 200000000000); // 2000$
 
     contract_client.toggle_collateral_setting(&user1, &symbol_short!("eth"));
-    contract_client.toggle_collateral_setting(&user1, &symbol_short!("atom"));
+    contract_client.toggle_collateral_setting(&user1, &symbol_short!("xlm"));
 
     contract_client.toggle_collateral_setting(&admin, &symbol_short!("eth"));
-    contract_client.toggle_collateral_setting(&admin, &symbol_short!("atom"));
+    contract_client.toggle_collateral_setting(&admin, &symbol_short!("xlm"));
 
     contract_client.deposit(&user1, &symbol_short!("eth"), &DEPOSIT_AMOUNT_ETH);
 
@@ -474,7 +473,7 @@ pub fn success_borrow_setup() -> (
         CONTRACT_RESERVES_ETH + DEPOSIT_AMOUNT_ETH
     );
 
-    contract_client.deposit(&user1, &symbol_short!("atom"), &DEPOSIT_AMOUNT_ATOM);
+    contract_client.deposit(&user1, &symbol_short!("xlm"), &DEPOSIT_AMOUNT_XLM);
 
     env.ledger().set(LedgerInfo {
         timestamp: 2000,
@@ -487,18 +486,18 @@ pub fn success_borrow_setup() -> (
         max_entry_expiration: current_info.max_entry_expiration,
     });
 
-    let user_deposited_balance: u128 = contract_client.get_deposit(&user1, &symbol_short!("atom"));
+    let user_deposited_balance: u128 = contract_client.get_deposit(&user1, &symbol_short!("xlm"));
 
-    assert_eq!(user_deposited_balance, DEPOSIT_AMOUNT_ATOM);
+    assert_eq!(user_deposited_balance, DEPOSIT_AMOUNT_XLM);
 
     assert_eq!(
-        token_atom.balance(&user1) as u128,
-        INIT_BALANCE_ATOM - DEPOSIT_AMOUNT_ATOM
+        token_xlm.balance(&user1) as u128,
+        INIT_BALANCE_XLM - DEPOSIT_AMOUNT_XLM
     );
 
     assert_eq!(
-        token_atom.balance(&contract_address) as u128,
-        CONTRACT_RESERVES_ATOM + DEPOSIT_AMOUNT_ATOM
+        token_xlm.balance(&contract_address) as u128,
+        CONTRACT_RESERVES_XLM + DEPOSIT_AMOUNT_XLM
     );
 
     env.ledger().set(LedgerInfo {
@@ -520,7 +519,7 @@ pub fn success_borrow_setup() -> (
         admin,
         user1,
         liquidator,
-        token_atom,
+        token_xlm,
         token_eth,
     )
 }
@@ -531,7 +530,7 @@ fn test_successful_deposits_of_one_token() {
 
     const INIT_USER_BALANCE: u128 = 1000 * 10u128.pow(TOKENS_DECIMALS);
     const INIT_LIQUIDATOR_BALANCE_ETH: u128 = 1_000_000 * 10u128.pow(TOKENS_DECIMALS); // 1M ETH
-    const INIT_LIQUIDATOR_BALANCE_ATOM: u128 = 1_000_000 * 10u128.pow(TOKENS_DECIMALS); // 1M ATOM
+    const INIT_LIQUIDATOR_BALANCE_XLM: u128 = 1_000_000 * 10u128.pow(TOKENS_DECIMALS); // 1M XLM
 
     const CONTRACT_RESERVES: u128 = 1_000_000 * 10u128.pow(TOKENS_DECIMALS);
     const FIRST_DEPOSIT_AMOUNT: u128 = 200 * 10u128.pow(TOKENS_DECIMALS);
@@ -540,8 +539,8 @@ fn test_successful_deposits_of_one_token() {
     const PERCENT_DECIMALS: u32 = 5;
     const LTV_ETH: u128 = 85 * 10u128.pow(PERCENT_DECIMALS); // 85%
     const LIQUIDATION_THRESHOLD_ETH: u128 = 90 * 10u128.pow(PERCENT_DECIMALS); // 90%
-    const LTV_ATOM: u128 = 75 * 10u128.pow(PERCENT_DECIMALS); // 75%
-    const LIQUIDATION_THRESHOLD_ATOM: u128 = 80 * 10u128.pow(PERCENT_DECIMALS); // 80%
+    const LTV_XLM: u128 = 75 * 10u128.pow(PERCENT_DECIMALS); // 75%
+    const LIQUIDATION_THRESHOLD_XLM: u128 = 80 * 10u128.pow(PERCENT_DECIMALS); // 80%
 
     const INTEREST_RATE_DECIMALS: u32 = 18;
     const MIN_INTEREST_RATE: u128 = 5 * 10u128.pow(INTEREST_RATE_DECIMALS);
@@ -552,7 +551,7 @@ fn test_successful_deposits_of_one_token() {
 
     const PRICE_DECIMALS: u32 = 8;
     const PRICE_ETH: u128 = 2000 * 10u128.pow(PRICE_DECIMALS);
-    const PRICE_ATOM: u128 = 10 * 10u128.pow(PRICE_DECIMALS);
+    const PRICE_XLM: u128 = 10 * 10u128.pow(PRICE_DECIMALS);
 
     let env = Env::default();
     env.mock_all_auths();
@@ -566,22 +565,22 @@ fn test_successful_deposits_of_one_token() {
 
     contract_client.initialize(&admin, &liquidator);
 
-    let token_atom = create_custom_token(&env, &admin, "Atom", "atom", &TOKENS_DECIMALS);
+    let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
 
-    token_atom.mint(&user1, &i128::try_from(INIT_USER_BALANCE).unwrap());
+    token_xlm.mint(&user1, &i128::try_from(INIT_USER_BALANCE).unwrap());
     token_eth.mint(&user1, &i128::try_from(INIT_USER_BALANCE).unwrap());
 
-    token_atom.mint(&admin, &i128::try_from(CONTRACT_RESERVES * 100).unwrap());
+    token_xlm.mint(&admin, &i128::try_from(CONTRACT_RESERVES * 100).unwrap());
     token_eth.mint(&admin, &i128::try_from(CONTRACT_RESERVES * 100).unwrap());
 
     contract_client.add_markets(
-        &symbol_short!("atom"),
-        &token_atom.address,
-        &symbol_short!("Atom"),
+        &symbol_short!("xlm"),
+        &token_xlm.address,
+        &symbol_short!("Xlm"),
         &TOKENS_DECIMALS,
-        &LTV_ATOM,
-        &LIQUIDATION_THRESHOLD_ATOM,
+        &LTV_XLM,
+        &LIQUIDATION_THRESHOLD_XLM,
         &5000000000000000000,
         &20000000000000000000,
         &100000000000000000000,
@@ -602,7 +601,7 @@ fn test_successful_deposits_of_one_token() {
     );
 
     // Funding contract
-    token_atom.transfer(
+    token_xlm.transfer(
         &admin,
         &contract_address,
         &i128::try_from(CONTRACT_RESERVES / 100).unwrap(),
@@ -613,7 +612,7 @@ fn test_successful_deposits_of_one_token() {
         &i128::try_from(CONTRACT_RESERVES / 100).unwrap(),
     );
 
-    contract_client.update_price(&symbol_short!("atom"), &PRICE_ATOM);
+    contract_client.update_price(&symbol_short!("xlm"), &PRICE_XLM);
     contract_client.update_price(&symbol_short!("eth"), &PRICE_ETH);
 
     contract_client.deposit(&user1, &symbol_short!("eth"), &FIRST_DEPOSIT_AMOUNT);
@@ -680,9 +679,9 @@ fn test_get_deposit() {
     let (contract_client, admin, user) = success_deposit_of_one_token_setup();
 
     let user_deposit_amount_eth: u128 = contract_client.get_deposit(&user, &symbol_short!("eth"));
-    let user_deposit_amount_atom: u128 = contract_client.get_deposit(&user, &symbol_short!("atom"));
+    let user_deposit_amount_xlm: u128 = contract_client.get_deposit(&user, &symbol_short!("xlm"));
 
-    assert_eq!(user_deposit_amount_atom, 0); // 0
+    assert_eq!(user_deposit_amount_xlm, 0); // 0
     assert_eq!(user_deposit_amount_eth, 500000000000000000000); // 500
 }
 
@@ -691,16 +690,16 @@ fn test_get_mm_token_price() {
     let (contract_client, admin, user) = success_deposit_of_one_token_setup();
 
     let get_mm_token_price_eth: u128 = contract_client.get_mm_token_price(&symbol_short!("eth"));
-    let get_mm_token_price_atom: u128 = contract_client.get_mm_token_price(&symbol_short!("atom"));
+    let get_mm_token_price_xlm: u128 = contract_client.get_mm_token_price(&symbol_short!("xlm"));
 
-    assert_eq!(get_mm_token_price_atom, 1000000000000000000); // 1:1
+    assert_eq!(get_mm_token_price_xlm, 1000000000000000000); // 1:1
     assert_eq!(get_mm_token_price_eth, 1000000000000000000); // 1:1
 }
 
 #[test]
 fn test_get_liquidity_rate() {
-    // contract reserves: 1000 ETH and 1000 ATOM
-    // user deposited 200 ETH and 300 ATOM
+    // contract reserves: 1000 ETH and 1000 XLM
+    // user deposited 200 ETH and 300 XLM
     let (env, contract_client, admin, user) =
         success_deposit_as_collateral_of_diff_token_with_prices();
 
@@ -709,14 +708,14 @@ fn test_get_liquidity_rate() {
 
     contract_client.borrow(
         &user,
-        &symbol_short!("atom"),
+        &symbol_short!("xlm"),
         &BORROW_SECOND_TOKEN_FIRST_PART,
     );
 
     let get_liquidity_rate_eth: u128 = contract_client.get_liquidity_rate(&symbol_short!("eth"));
-    let get_liquidity_rate_atom: u128 = contract_client.get_liquidity_rate(&symbol_short!("atom"));
+    let get_liquidity_rate_xlm: u128 = contract_client.get_liquidity_rate(&symbol_short!("xlm"));
 
-    assert_eq!(get_liquidity_rate_atom, 1153846153846153846); // ~1.154%
+    assert_eq!(get_liquidity_rate_xlm, 1153846153846153846); // ~1.154%
     assert_eq!(get_liquidity_rate_eth, 0);
 }
 
@@ -724,36 +723,36 @@ fn test_get_liquidity_rate() {
 fn test_get_user_borrow_amount_with_interest() {
     const TOKENS_DECIMALS: u32 = 18;
     const BORROW_AMOUNT_ETH: u128 = 50 * 10u128.pow(TOKENS_DECIMALS); // 50 ETH
-    const BORROW_AMOUNT_ATOM: u128 = 200 * 10u128.pow(TOKENS_DECIMALS); // 200 ATOM
+    const BORROW_AMOUNT_XLM: u128 = 200 * 10u128.pow(TOKENS_DECIMALS); // 200 XLM
 
     const YEAR_IN_SECONDS: u64 = 31536000;
 
-    // contract reserves: 1000 ETH and 1000 ATOM
-    // user deposited 200 ETH and 300 ATOM
+    // contract reserves: 1000 ETH and 1000 XLM
+    // user deposited 200 ETH and 300 XLM
     let (env, contract_client, admin, user) =
         success_deposit_as_collateral_of_diff_token_with_prices();
 
     let mut user_borrow_amount_with_interest_eth: u128 =
         contract_client.get_user_borrow_with_interest(&user, &symbol_short!("eth"));
 
-    let mut user_borrow_amount_with_interest_atom: u128 =
-        contract_client.get_user_borrow_with_interest(&user, &symbol_short!("atom"));
+    let mut user_borrow_amount_with_interest_xlm: u128 =
+        contract_client.get_user_borrow_with_interest(&user, &symbol_short!("xlm"));
 
     // user hasn't borrowed anything yet
     assert_eq!(user_borrow_amount_with_interest_eth, 0);
-    assert_eq!(user_borrow_amount_with_interest_atom, 0);
+    assert_eq!(user_borrow_amount_with_interest_xlm, 0);
 
     contract_client.borrow(&user, &symbol_short!("eth"), &BORROW_AMOUNT_ETH);
-    contract_client.borrow(&user, &symbol_short!("atom"), &BORROW_AMOUNT_ATOM);
+    contract_client.borrow(&user, &symbol_short!("xlm"), &BORROW_AMOUNT_XLM);
 
     user_borrow_amount_with_interest_eth =
         contract_client.get_user_borrow_with_interest(&user, &symbol_short!("eth"));
 
-    user_borrow_amount_with_interest_atom =
-        contract_client.get_user_borrow_with_interest(&user, &symbol_short!("atom"));
+    user_borrow_amount_with_interest_xlm =
+        contract_client.get_user_borrow_with_interest(&user, &symbol_short!("xlm"));
 
     assert_eq!(user_borrow_amount_with_interest_eth, 50000000000000000000); // 50 ETH
-    assert_eq!(user_borrow_amount_with_interest_atom, 200000000000000000000); // 200 ATOM
+    assert_eq!(user_borrow_amount_with_interest_xlm, 200000000000000000000); // 200 XLM
 
     let current_info: LedgerInfo = env.ledger().get();
 
@@ -771,13 +770,13 @@ fn test_get_user_borrow_amount_with_interest() {
     user_borrow_amount_with_interest_eth =
         contract_client.get_user_borrow_with_interest(&user, &symbol_short!("eth"));
 
-    user_borrow_amount_with_interest_atom =
-        contract_client.get_user_borrow_with_interest(&user, &symbol_short!("atom"));
+    user_borrow_amount_with_interest_xlm =
+        contract_client.get_user_borrow_with_interest(&user, &symbol_short!("xlm"));
 
     // 50 ETH + 5% borrow APY = 50 ETH + 2.5 ETH = 52.5 ETH
     assert_eq!(user_borrow_amount_with_interest_eth, 52500000000000000000);
-    // 200 ATOM + 5% borrow APY = 200 ATOM + 10 ATOM = 210 ATOM
-    assert_eq!(user_borrow_amount_with_interest_atom, 210000000000000000000);
+    // 200 XLM + 5% borrow APY = 200 XLM + 10 XLM = 210 XLM
+    assert_eq!(user_borrow_amount_with_interest_xlm, 210000000000000000000);
 
     // let users_with_borrow = contract_client.GetAllUsersWithBorrows();
 
@@ -788,7 +787,7 @@ fn test_get_user_borrow_amount_with_interest() {
 fn test_success_borrow_one_token() {
     const DECIMAL_FRACTIONAL: u128 = 1_000000_000000_000000_u128; // 1*10**18
 
-    const INIT_BALANCE_SECOND_TOKEN: u128 = 1_000_000 * DECIMAL_FRACTIONAL; // 1M ATOM
+    const INIT_BALANCE_SECOND_TOKEN: u128 = 1_000_000 * DECIMAL_FRACTIONAL; // 1M XLM
 
     const DEPOSIT_OF_SECOND_TOKEN: u128 = 300 * DECIMAL_FRACTIONAL;
 
@@ -796,35 +795,35 @@ fn test_success_borrow_one_token() {
 
     /*
     price eth 1500
-    price atom 10
+    price xlm 10
 
     deposited eth 200 * 1500 = 300_000 $
 
-    borrowed atom 300 * 10 = 3_000 $
+    borrowed xlm 300 * 10 = 3_000 $
     */
 
-    // contract reserves: 1000 ETH and 1000 ATOM
-    // user deposited 200 ETH and 300 ATOM
+    // contract reserves: 1000 ETH and 1000 XLM
+    // user deposited 200 ETH and 300 XLM
     let (env, contract_client, admin, user) =
         success_deposit_as_collateral_of_diff_token_with_prices();
 
-    contract_client.redeem(&user, &symbol_short!("atom"), &DEPOSIT_OF_SECOND_TOKEN);
+    contract_client.redeem(&user, &symbol_short!("xlm"), &DEPOSIT_OF_SECOND_TOKEN);
 
     let user_deposited_balance_after_redeeming: u128 =
-        contract_client.get_deposit(&user, &symbol_short!("atom"));
+        contract_client.get_deposit(&user, &symbol_short!("xlm"));
 
     assert_eq!(user_deposited_balance_after_redeeming, 0);
 
     // assert_eq!(
     //     app.wrap()
-    //         .query_balance("user", "atom")
+    //         .query_balance("user", "xlm")
     //         .unwrap()
     //         .amount
     //         ,
     //     INIT_BALANCE_SECOND_TOKEN
     // );
 
-    contract_client.borrow(&user, &symbol_short!("atom"), &BORROW_SECOND_TOKEN);
+    contract_client.borrow(&user, &symbol_short!("xlm"), &BORROW_SECOND_TOKEN);
 
     let current_info: LedgerInfo = env.ledger().get();
 
@@ -840,7 +839,7 @@ fn test_success_borrow_one_token() {
     });
 
     let user_borrowed_balance: u128 =
-        contract_client.get_user_borrow_with_interest(&user, &symbol_short!("atom"));
+        contract_client.get_user_borrow_with_interest(&user, &symbol_short!("xlm"));
 
     assert_ne!(user_borrowed_balance, BORROW_SECOND_TOKEN);
     assert_eq!(user_borrowed_balance, BORROW_SECOND_TOKEN * 105 / 100);
@@ -849,7 +848,7 @@ fn test_success_borrow_one_token() {
 #[test]
 fn test_success_repay_whole_amount() {
     // user borrowed 50 ETH
-    let (env, contract_client, admin, user, liquidator, token_atom, token_eth) =
+    let (env, contract_client, admin, user, liquidator, token_xlm, token_eth) =
         success_borrow_setup();
 
     let current_info: LedgerInfo = env.ledger().get();
@@ -881,7 +880,7 @@ fn test_success_repay_whole_amount() {
 #[test]
 fn test_success_repay_more_than_needed() {
     // user borrowed 50 ETH
-    let (env, contract_client, admin, user, liquidator, token_atom, token_eth) =
+    let (env, contract_client, admin, user, liquidator, token_xlm, token_eth) =
         success_borrow_setup();
 
     let mut ledger_info: LedgerInfo = env.ledger().get();
@@ -921,7 +920,7 @@ fn test_success_repay_by_parts() {
     const BORROW_AMOUNT_ETH: u128 = 50 * 10u128.pow(TOKENS_DECIMALS); // 50 ETH
 
     // user borrowed 50 ETH
-    let (env, contract_client, admin, user, liquidator, token_atom, token_eth) =
+    let (env, contract_client, admin, user, liquidator, token_xlm, token_eth) =
         success_borrow_setup();
 
     let mut ledger_info: LedgerInfo = env.ledger().get();
@@ -965,9 +964,9 @@ fn test_success_liquidation() {
     const YEAR_IN_SECONDS: u64 = 31536000;
 
     // contract reserves: 1000 ETH
-    // user deposited 200 ETH and 300 ATOM
+    // user deposited 200 ETH and 300 XLM
     // user borrowed 50 ETH
-    let (env, contract_client, admin, user, liquidator, token_atom, token_eth) =
+    let (env, contract_client, admin, user, liquidator, token_xlm, token_eth) =
         success_borrow_setup();
 
     let mut ledger_info: LedgerInfo = env.ledger().get();
@@ -978,20 +977,20 @@ fn test_success_liquidation() {
 
     assert_eq!(user_deposited_balance_eth, 200_000000000000000000); // 200 ETH
 
-    let user_deposited_balance_atom: u128 =
-        contract_client.get_deposit(&user, &symbol_short!("atom"));
+    let user_deposited_balance_xlm: u128 =
+        contract_client.get_deposit(&user, &symbol_short!("xlm"));
 
-    assert_eq!(user_deposited_balance_atom, 300_000000000000000000); // 300 ATOM
+    assert_eq!(user_deposited_balance_xlm, 300_000000000000000000); // 300 XLM
 
     let user_collateral_usd: u128 = contract_client.get_user_collateral_usd(&user);
 
-    // 200 ETH * 2000 + 300 ATOM * 10 == 403_000$
+    // 200 ETH * 2000 + 300 XLM * 10 == 403_000$
     assert_eq!(user_collateral_usd, 403_00000000000);
 
-    let reserve_configuration_atom: ReserveConfiguration =
-        contract_client.get_reserve_configuration(&symbol_short!("atom"));
+    let reserve_configuration_xlm: ReserveConfiguration =
+        contract_client.get_reserve_configuration(&symbol_short!("xlm"));
 
-    assert_eq!(reserve_configuration_atom.loan_to_value_ratio, 7500000); // ltv_atom = 75%
+    assert_eq!(reserve_configuration_xlm.loan_to_value_ratio, 7500000); // ltv_xlm = 75%
 
     let reserve_configuration_eth: ReserveConfiguration =
         contract_client.get_reserve_configuration(&symbol_short!("eth"));
@@ -1001,7 +1000,7 @@ fn test_success_liquidation() {
     let user_max_allowed_borrow_amount_usd: u128 =
         contract_client.get_user_max_allowed_borrow_usd(&user);
 
-    // 200 ETH * 0.85 * 2000 + 300 ATOM * 0.75 * 10 == 340_000 + 2_250 = 342_250$
+    // 200 ETH * 0.85 * 2000 + 300 XLM * 0.75 * 10 == 340_000 + 2_250 = 342_250$
     assert_eq!(user_max_allowed_borrow_amount_usd, 342_250_00000000);
 
     let user_borrowed_usd: u128 = contract_client.get_user_borrowed_usd(&user);
@@ -1042,10 +1041,10 @@ fn test_success_liquidation() {
     assert_eq!(user_utilization_rate, 9366274); // 93.66274% > 89.92676%
 
     let user_deposit_amount_eth = contract_client.get_deposit(&user, &symbol_short!("eth"));
-    let user_deposit_amount_atom = contract_client.get_deposit(&user, &symbol_short!("atom"));
+    let user_deposit_amount_xlm = contract_client.get_deposit(&user, &symbol_short!("xlm"));
 
     assert_eq!(user_deposit_amount_eth, 203_331286529000814400); // 203.331286529000814400 ETH
-    assert_eq!(user_deposit_amount_atom, 300_000000000000000000); // 300 ATOM
+    assert_eq!(user_deposit_amount_xlm, 300_000000000000000000); // 300 XLM
 
     let user_borrow_amount_eth: u128 =
         contract_client.get_user_borrow_with_interest(&user, &symbol_short!("eth"));
@@ -1061,12 +1060,12 @@ fn test_success_liquidation() {
     let liquidator_deposit_amount_eth =
         contract_client.get_deposit(&liquidator, &symbol_short!("eth"));
 
-    let liquidator_deposit_amount_atom =
-        contract_client.get_deposit(&liquidator, &symbol_short!("atom"));
+    let liquidator_deposit_amount_xlm =
+        contract_client.get_deposit(&liquidator, &symbol_short!("xlm"));
 
     // TODO: need to correct the calculation inaccuracy
     assert_eq!(liquidator_deposit_amount_eth, 9999999999999999999999); // 9999.999999999999999999 ETH
-    assert_eq!(liquidator_deposit_amount_atom, 0); // 0
+    assert_eq!(liquidator_deposit_amount_xlm, 0); // 0
 
     contract_client.liquidation(&user);
 
@@ -1082,13 +1081,13 @@ fn test_success_liquidation() {
 
     let liquidator_deposit_amount_eth =
         contract_client.get_deposit(&liquidator, &symbol_short!("eth"));
-    let liquidator_deposit_amount_atom =
-        contract_client.get_deposit(&liquidator, &symbol_short!("atom"));
+    let liquidator_deposit_amount_xlm =
+        contract_client.get_deposit(&liquidator, &symbol_short!("xlm"));
 
     // 9999.999999999999999999 ETH - 191.850604584630250327 ETH + 203.331286529000814400 ETH ~= 10011,480681944 ETH
     // TODO: need to correct the calculation inaccuracy
     assert_eq!(liquidator_deposit_amount_eth, 10008510511955314159271); // 10008.510511955314159271 ETH
-    assert_eq!(liquidator_deposit_amount_atom, 300000000000000000000); // 300 ATOM
+    assert_eq!(liquidator_deposit_amount_xlm, 300000000000000000000); // 300 XLM
 }
 
 
@@ -1100,9 +1099,9 @@ fn test_full_borrow() {
     const YEAR_IN_SECONDS: u64 = 31536000;
 
     // contract reserves: 1000 ETH
-    // user deposited 200 ETH and 300 ATOM
+    // user deposited 200 ETH and 300 XLM
     // user borrowed 50 ETH
-    let (env, contract_client, admin, user, liquidator, token_atom, token_eth) =
+    let (env, contract_client, admin, user, liquidator, token_xlm, token_eth) =
         success_borrow_setup();
 
     let mut ledger_info: LedgerInfo = env.ledger().get();
@@ -1113,20 +1112,20 @@ fn test_full_borrow() {
 
     assert_eq!(user_deposited_balance_eth, 200_000000000000000000); // 200 ETH
 
-    let user_deposited_balance_atom: u128 =
-        contract_client.get_deposit(&user, &symbol_short!("atom"));
+    let user_deposited_balance_xlm: u128 =
+        contract_client.get_deposit(&user, &symbol_short!("xlm"));
 
-    assert_eq!(user_deposited_balance_atom, 300_000000000000000000); // 300 ATOM
+    assert_eq!(user_deposited_balance_xlm, 300_000000000000000000); // 300 XLM
 
     let user_collateral_usd: u128 = contract_client.get_user_collateral_usd(&user);
 
-    // 200 ETH * 2000 + 300 ATOM * 10 == 403_000$
+    // 200 ETH * 2000 + 300 XLM * 10 == 403_000$
     assert_eq!(user_collateral_usd, 403_00000000000);
 
-    let reserve_configuration_atom: ReserveConfiguration =
-        contract_client.get_reserve_configuration(&symbol_short!("atom"));
+    let reserve_configuration_xlm: ReserveConfiguration =
+        contract_client.get_reserve_configuration(&symbol_short!("xlm"));
 
-    assert_eq!(reserve_configuration_atom.loan_to_value_ratio, 7500000); // ltv_atom = 75%
+    assert_eq!(reserve_configuration_xlm.loan_to_value_ratio, 7500000); // ltv_xlm = 75%
 
     let reserve_configuration_eth: ReserveConfiguration =
         contract_client.get_reserve_configuration(&symbol_short!("eth"));
@@ -1136,7 +1135,7 @@ fn test_full_borrow() {
     let user_max_allowed_borrow_amount_usd: u128 =
         contract_client.get_user_max_allowed_borrow_usd(&user);
 
-    // 200 ETH * 0.85 * 2000 + 300 ATOM * 0.75 * 10 == 340_000 + 2_250 = 342_250$
+    // 200 ETH * 0.85 * 2000 + 300 XLM * 0.75 * 10 == 340_000 + 2_250 = 342_250$
     assert_eq!(user_max_allowed_borrow_amount_usd, 342_250_00000000);
 
     let user_borrowed_usd: u128 = contract_client.get_user_borrowed_usd(&user);
@@ -1167,14 +1166,29 @@ fn test_full_borrow() {
 
 #[test]
 fn test_redeem() {
-    // contract reserves: 1000 ETH and 1000 ATOM
-    // user deposited 200 ETH and 300 ATOM
+    // contract reserves: 1000 ETH and 1000 XLM
+    // user deposited 200 ETH and 300 XLM
     let (env, contract_client, admin, user) =
         success_deposit_as_collateral_of_diff_token_with_prices();
 
+    // let token_btk = create_custom_token(&env, &admin, "BTK", "btk", &7);
+
+    // contract_client.AddMarkets(
+    //     &symbol_short!("btk"),
+    //     &token_btk.address,
+    //     &symbol_short!("BTK"),
+    //     &7,
+    //     &(75 * 10u128.pow(5)),
+    //     &(80 * 10u128.pow(5)),
+    //     &(5 * 10u128.pow(18)),
+    //     &(30 * 10u128.pow(18)),
+    //     &(70 * 10u128.pow(18)),
+    //     &(80 * 10u128.pow(5)),
+    // );
+
     const TOKENS_DECIMALS: u32 = 18;
     const DEPOSIT_AMOUNT_ETH: u128 = 200 * 10u128.pow(TOKENS_DECIMALS);
-    const DEPOSIT_AMOUNT_ATOM: u128 = 300 * 10u128.pow(TOKENS_DECIMALS);
+    const DEPOSIT_AMOUNT_XLM: u128 = 300 * 10u128.pow(TOKENS_DECIMALS);
     env.budget().reset_unlimited();
     let available_to_redeem_eth: u128 =
         contract_client.get_available_to_redeem(&user, &symbol_short!("eth"));
@@ -1184,14 +1198,54 @@ fn test_redeem() {
         env.budget().cpu_instruction_cost()
     );
     env.budget().reset_unlimited();
-    let available_to_redeem_atom: u128 =
-        contract_client.get_available_to_redeem(&user, &symbol_short!("atom"));
+    let available_to_redeem_xlm: u128 =
+        contract_client.get_available_to_redeem(&user, &symbol_short!("xlm"));
     println!(
-        "      get_available_to_redeem atom: {:?}",
+        "      get_available_to_redeem xlm: {:?}",
         env.budget().cpu_instruction_cost()
     );
     assert_eq!(available_to_redeem_eth, DEPOSIT_AMOUNT_ETH); // 200 ETH
-    assert_eq!(available_to_redeem_atom, DEPOSIT_AMOUNT_ATOM); // 300 ATOM
+    assert_eq!(available_to_redeem_xlm, DEPOSIT_AMOUNT_XLM); // 300 XLM
+
+    env.budget().reset_unlimited();
+    let available_to_borrow_eth: u128 =
+        contract_client.GetAvailableToBorrow(&user, &symbol_short!("eth"));
+    println!(
+        "      GetAvailableToBorrow eth: {:?}",
+        env.budget().cpu_instruction_cost()
+    );
+
+    env.budget().reset_unlimited();
+    contract_client.GetUserCollateralUsd(&user);
+    println!(
+        "           GetUserCollateralUsd: {:?}",
+        env.budget().cpu_instruction_cost()
+    );
+    env.budget().reset_unlimited();
+    contract_client.GetUserBorrowedUsd(&user);
+    println!(
+        "             GetUserBorrowedUsd: {:?}",
+        env.budget().cpu_instruction_cost()
+    );
+    env.budget().reset_unlimited();
+    contract_client.GetUserLiquidationThreshold(&user);
+    println!(
+        "    GetUserLiquidationThreshold: {:?}",
+        env.budget().cpu_instruction_cost()
+    );
+    env.budget().reset_unlimited();
+    contract_client.GetAvailableLiquidityByToken(&symbol_short!("eth"));
+    println!(
+        "   GetAvailableLiquidityByToken: {:?}",
+        env.budget().cpu_instruction_cost()
+    );
+    env.budget().reset_unlimited();
+    contract_client.Borrow(&user, &symbol_short!("eth"), &1_000_000);
+    println!(
+        "   Borrow: {:?}",
+        env.budget().cpu_instruction_cost()
+    );
+
 }
 
 #[test]
@@ -1237,8 +1291,8 @@ fn test_budget() {
 #[test]
 fn test_tvl() {
 
-    // contract reserves: 1000 ETH + 1000 ATOM
-    // user deposited 200 ETH and 300 ATOM
+    // contract reserves: 1000 ETH + 1000 XLM
+    // user deposited 200 ETH and 300 XLM
     // 1200 * 2000 + 1300 * 10 = 2413000
     let (env, contract_client, admin, user) =
     success_deposit_of_diff_token_with_prices();

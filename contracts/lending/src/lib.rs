@@ -243,46 +243,48 @@ impl LendingContract {
     pub fn toggle_collateral_setting(env: Env, user: Address, denom: Symbol) {
         user.require_auth();
 
+        // POC: Only xlm is used as a collateral
+
         let use_user_deposit_as_collateral =
             user_deposit_as_collateral(env.clone(), user.clone(), denom.clone());
 
-        if use_user_deposit_as_collateral {
-            let user_token_balance: u128 = get_deposit(env.clone(), user.clone(), denom.clone());
+        // if use_user_deposit_as_collateral {
+        //     let user_token_balance: u128 = get_deposit(env.clone(), user.clone(), denom.clone());
 
-            if user_token_balance != 0 {
-                let token_decimals = get_token_decimal(env.clone(), denom.clone());
+        //     if user_token_balance != 0 {
+        //         let token_decimals = get_token_decimal(env.clone(), denom.clone());
 
-                let price = fetch_price_by_token(env.clone(), denom.clone());
+        //         let price = fetch_price_by_token(env.clone(), denom.clone());
 
-                let user_token_balance_usd =
-                    Decimal::from_i128_with_scale(user_token_balance as i128, token_decimals)
-                        .mul(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
-                        .to_u128_with_decimals(USD_DECIMALS)
-                        .unwrap();
+        //         let user_token_balance_usd =
+        //             Decimal::from_i128_with_scale(user_token_balance as i128, token_decimals)
+        //                 .mul(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
+        //                 .to_u128_with_decimals(USD_DECIMALS)
+        //                 .unwrap();
 
-                let sum_collateral_balance_usd = get_user_collateral_usd(env.clone(), user.clone());
+        //         let sum_collateral_balance_usd = get_user_collateral_usd(env.clone(), user.clone());
 
-                let sum_borrow_balance_usd = get_user_borrowed_usd(env.clone(), user.clone());
+        //         let sum_borrow_balance_usd = get_user_borrowed_usd(env.clone(), user.clone());
 
-                let user_liquidation_threshold =
-                    get_user_liquidation_threshold(env.clone(), user.clone());
+        //         let user_liquidation_threshold =
+        //             get_user_liquidation_threshold(env.clone(), user.clone());
 
-                assert!(
-                    sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold < sum_collateral_balance_usd - user_token_balance_usd,
-                    "The collateral has already using to collateralise the borrowing. Not enough available balance"
-                );
-            }
-        }
+        //         assert!(
+        //             sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold < sum_collateral_balance_usd - user_token_balance_usd,
+        //             "The collateral has already using to collateralise the borrowing. Not enough available balance"
+        //         );
+        //     }
+        // }
 
-        env.storage().persistent().set(
-            &DataKey::USER_DEPOSIT_AS_COLLATERAL(user.clone(), denom.clone()),
-            &!use_user_deposit_as_collateral,
-        );
-        env.storage().persistent().bump(
-            &DataKey::USER_DEPOSIT_AS_COLLATERAL(user.clone(), denom.clone()),
-            MONTH_LIFETIME_THRESHOLD,
-            MONTH_BUMP_AMOUNT,
-        );
+        // env.storage().persistent().set(
+        //     &DataKey::USER_DEPOSIT_AS_COLLATERAL(user.clone(), denom.clone()),
+        //     &!use_user_deposit_as_collateral,
+        // );
+        // env.storage().persistent().bump(
+        //     &DataKey::USER_DEPOSIT_AS_COLLATERAL(user.clone(), denom.clone()),
+        //     MONTH_LIFETIME_THRESHOLD,
+        //     MONTH_BUMP_AMOUNT,
+        // );
     }
 
     pub fn borrow(env: Env, user: Address, denom: Symbol, amount: u128) {
