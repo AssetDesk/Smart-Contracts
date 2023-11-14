@@ -159,8 +159,7 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
     (contract_client, admin, user1)
 }
 
-pub fn success_deposit_of_diff_token_with_prices(
-) -> (Env, LendingContractClient<'static>, Address, Address) {
+pub fn success_deposit_of_diff_token_with_prices() -> (Env, LendingContractClient<'static>, Address, Address) {
     const TOKENS_DECIMALS: u32 = 18;
 
     const INIT_BALANCE_ETH: u128 = 1000 * 10u128.pow(TOKENS_DECIMALS);
@@ -301,8 +300,7 @@ pub fn success_deposit_of_diff_token_with_prices(
     (env, contract_client, admin, user1)
 }
 
-pub fn success_deposit_as_collateral_of_diff_token_with_prices(
-) -> (Env, LendingContractClient<'static>, Address, Address) {
+pub fn success_deposit_as_collateral_of_diff_token_with_prices() -> (Env, LendingContractClient<'static>, Address, Address) {
     let (env, contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
 
     contract_client.toggle_collateral_setting(&user, &symbol_short!("eth"));
@@ -391,8 +389,9 @@ pub fn success_borrow_setup() -> (
 
     contract_client.add_markets(
         &symbol_short!("xlm"),
-        &token_atom.address,
+        &token_xlm.address,
         &symbol_short!("xlm"),
+        &TOKENS_DECIMALS,
         &LTV_XLM,
         &LIQUIDATION_THRESHOLD_XLM,
         &MIN_INTEREST_RATE,
@@ -1209,43 +1208,42 @@ fn test_redeem() {
 
     env.budget().reset_unlimited();
     let available_to_borrow_eth: u128 =
-        contract_client.GetAvailableToBorrow(&user, &symbol_short!("eth"));
+        contract_client.get_available_to_borrow(&user, &symbol_short!("eth"));
     println!(
         "      GetAvailableToBorrow eth: {:?}",
         env.budget().cpu_instruction_cost()
     );
 
     env.budget().reset_unlimited();
-    contract_client.GetUserCollateralUsd(&user);
+    contract_client.get_user_collateral_usd(&user);
     println!(
         "           GetUserCollateralUsd: {:?}",
         env.budget().cpu_instruction_cost()
     );
     env.budget().reset_unlimited();
-    contract_client.GetUserBorrowedUsd(&user);
+    contract_client.get_user_borrowed_usd(&user);
     println!(
         "             GetUserBorrowedUsd: {:?}",
         env.budget().cpu_instruction_cost()
     );
     env.budget().reset_unlimited();
-    contract_client.GetUserLiquidationThreshold(&user);
+    contract_client.get_user_liquidation_threshold(&user);
     println!(
         "    GetUserLiquidationThreshold: {:?}",
         env.budget().cpu_instruction_cost()
     );
     env.budget().reset_unlimited();
-    contract_client.GetAvailableLiquidityByToken(&symbol_short!("eth"));
+    contract_client.get_available_liquidity_by_token(&symbol_short!("eth"));
     println!(
         "   GetAvailableLiquidityByToken: {:?}",
         env.budget().cpu_instruction_cost()
     );
     env.budget().reset_unlimited();
-    contract_client.Borrow(&user, &symbol_short!("eth"), &1_000_000);
+    contract_client.borrow(&user, &symbol_short!("eth"), &1_000_000);
     println!(
         "   Borrow: {:?}",
         env.budget().cpu_instruction_cost()
     );
-
 }
 
 #[test]
@@ -1295,7 +1293,7 @@ fn test_tvl() {
     // user deposited 200 ETH and 300 XLM
     // 1200 * 2000 + 1300 * 10 = 2413000
     let (env, contract_client, admin, user) =
-    success_deposit_of_diff_token_with_prices();
-    
+        success_deposit_of_diff_token_with_prices();
+
     assert_eq!(contract_client.get_tvl(), 2_413_000 * 10u128.pow(8)); // 2_313_000 USD
 }
