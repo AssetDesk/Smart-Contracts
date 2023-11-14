@@ -363,7 +363,9 @@ fn get_current_liquidity_index_ln(env: Env, denom: Symbol) -> u128 {
     let liquidity_index_data: LiquidityIndexData = env
         .storage()
         .persistent()
-        .get(&DataKey::LIQUIDITY_INDEX_DATA(denom.clone()))
+        .get(&DataKey::LIQUIDITY_INDEX_DATA)
+        .unwrap_or(Map::new(&env))
+        .get(denom.clone())
         .unwrap();
 
     let liquidity_index_last_update: u64 = liquidity_index_data.timestamp;
@@ -395,12 +397,15 @@ fn execute_update_liquidity_index_data(env: Env, denom: Symbol) {
         timestamp: env.ledger().timestamp(),
     };
 
+    let mut liquidity_map: Map<Symbol, LiquidityIndexData> = env.storage().persistent().get(
+        &DataKey::LIQUIDITY_INDEX_DATA).unwrap_or(Map::new(&env));
+    liquidity_map.set(denom.clone(), new_liquidity_index_data);
     env.storage().persistent().set(
-        &DataKey::LIQUIDITY_INDEX_DATA(denom.clone()),
-        &new_liquidity_index_data,
+        &DataKey::LIQUIDITY_INDEX_DATA,
+        &liquidity_map,
     );
     env.storage().persistent().bump(
-        &DataKey::LIQUIDITY_INDEX_DATA(denom.clone()),
+        &DataKey::LIQUIDITY_INDEX_DATA,
         MONTH_LIFETIME_THRESHOLD,
         MONTH_BUMP_AMOUNT,
     );
@@ -818,12 +823,16 @@ impl LendingContract {
             liquidity_index_ln: 0_u128,
             timestamp: env.ledger().timestamp(),
         };
+
+        let mut liquidity_map: Map<Symbol, LiquidityIndexData> = env.storage().persistent().get(
+        &DataKey::LIQUIDITY_INDEX_DATA).unwrap_or(Map::new(&env));
+        liquidity_map.set(denom.clone(), liquidity_index_data);
         env.storage().persistent().set(
-            &DataKey::LIQUIDITY_INDEX_DATA(denom.clone()),
-            &liquidity_index_data,
+            &DataKey::LIQUIDITY_INDEX_DATA,
+            &liquidity_map,
         );
         env.storage().persistent().bump(
-            &DataKey::LIQUIDITY_INDEX_DATA(denom.clone()),
+            &DataKey::LIQUIDITY_INDEX_DATA,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
         );

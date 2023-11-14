@@ -18,7 +18,7 @@ pub enum DataKey {
     TOTAL_BORROW_DATA,                   // Map of TotalBorrowData per denom
     SUPPORTED_TOKENS,                    // Map of TokenInfo denom data
     SUPPORTED_TOKENS_LIST,                       // List of supported tokens
-    LIQUIDITY_INDEX_DATA(Symbol),                // LiquidityIndexData per denom
+    LIQUIDITY_INDEX_DATA,                // Map of LiquidityIndexData per denom
     USER_MM_TOKEN_BALANCE(Address, Symbol),      // user mm token balance per denom
     RESERVE_CONFIGURATION(Symbol),               // ReserveConfiguration per denom
     TOKENS_INTEREST_RATE_MODEL_PARAM(Symbol),    // TokenInterestRateModelParams per denom
