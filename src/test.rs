@@ -1091,7 +1091,6 @@ fn test_success_repay_by_parts() {
 //     assert_eq!(liquidator_deposit_amount_xlm, 300000000000000000000); // 300 XLM
 // }
 
-
 #[test]
 fn test_full_borrow() {
     const TOKENS_DECIMALS: u32 = 18;
@@ -1113,8 +1112,7 @@ fn test_full_borrow() {
 
     assert_eq!(user_deposited_balance_eth, 200_000000000000000000); // 200 ETH
 
-    let user_deposited_balance_xlm: u128 =
-        contract_client.GetDeposit(&user, &symbol_short!("xlm"));
+    let user_deposited_balance_xlm: u128 = contract_client.GetDeposit(&user, &symbol_short!("xlm"));
 
     assert_eq!(user_deposited_balance_xlm, 300_000000000000000000); // 300 XLM
 
@@ -1163,7 +1161,6 @@ fn test_full_borrow() {
         contract_client.GetAvailableToBorrow(&user, &symbol_short!("eth"));
     assert_eq!(available_to_borrow_eth, 0); // 0 ETH
 }
-
 
 #[test]
 fn test_redeem() {
@@ -1242,16 +1239,10 @@ fn test_redeem() {
     );
     env.budget().reset_unlimited();
     contract_client.Borrow(&user, &symbol_short!("eth"), &1_000_000);
-    println!(
-        "   Borrow: {:?}",
-        env.budget().cpu_instruction_cost()
-    );
+    println!("   Borrow: {:?}", env.budget().cpu_instruction_cost());
     env.budget().reset_unlimited();
     contract_client.Redeem(&user, &symbol_short!("xlm"), &0);
-    println!(
-        "   Redeem: {:?}",
-        env.budget().cpu_instruction_cost()
-    );
+    println!("   Redeem: {:?}", env.budget().cpu_instruction_cost());
     env.budget().reset_unlimited();
     contract_client.Redeem(&user, &symbol_short!("eth"), &0);
     let available_to_redeem_eth: u128 =
@@ -1260,7 +1251,6 @@ fn test_redeem() {
         contract_client.GetAvailableToRedeem(&user, &symbol_short!("xlm"));
     assert_eq!(available_to_redeem_eth, 0); // 0 ETH
     assert_eq!(available_to_redeem_xlm, 0); // 0 XLM
-    
 }
 
 #[test]
@@ -1305,12 +1295,10 @@ fn test_budget() {
 
 #[test]
 fn test_tvl() {
-
     // contract reserves: 1000 ETH + 1000 XLM
     // user deposited 200 ETH and 300 XLM
     // 1200 * 2000 + 1300 * 10 = 2413000
-    let (env, contract_client, admin, user) =
-    success_deposit_of_diff_token_with_prices();
-    
+    let (env, contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
+
     assert_eq!(contract_client.GetTVL(), 2_413_000 * 10u128.pow(8)); // 2_313_000 USD
 }
