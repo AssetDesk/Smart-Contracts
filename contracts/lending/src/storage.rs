@@ -1,12 +1,10 @@
 #![allow(dead_code)]
 
-use core::ops::{Mul, Div};
-use rust_decimal::{Decimal, MathematicalOps};
+use core::ops::{Div, Mul};
 use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::{Decimal, MathematicalOps};
 
-use soroban_sdk::{
-    contracttype, map, symbol_short, token, Address, Env, Map, Symbol, Vec,
-};
+use soroban_sdk::{contracttype, map, symbol_short, token, Address, Env, Map, Symbol, Vec};
 
 pub(crate) const DAY_IN_LEDGERS: u32 = 17280;
 pub(crate) const WEEK_BUMP_AMOUNT: u32 = 7 * DAY_IN_LEDGERS;
@@ -24,7 +22,6 @@ pub(crate) const HUNDRED: u128 = 100;
 pub(crate) const YEAR_IN_SECONDS: u128 = 31536000; // 365 days
 
 pub(crate) const USD_DECIMALS: u32 = 8;
-
 
 pub trait DecimalExt {
     fn to_u128_with_decimals(&self, decimals: u32) -> Result<u128, rust_decimal::Error>;
@@ -56,7 +53,6 @@ impl DecimalExt for Decimal {
     }
 }
 
-
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
@@ -82,7 +78,7 @@ pub enum DataKey {
     // Map price for denom
     UserDepositAsCollateral(Address),
     // Map of bool per denom
-    UserBorrowingInfo(Address),       // Map UserBorrowingInfo per denom
+    UserBorrowingInfo(Address), // Map UserBorrowingInfo per denom
 }
 
 #[contracttype]
@@ -149,7 +145,6 @@ pub struct TokenInterestRateModelParams {
     pub rate_growth_factor: u128,
     pub optimal_utilization_ratio: u128,
 }
-
 
 pub fn has_admin(e: &Env) -> bool {
     let key = DataKey::Admin;
@@ -252,11 +247,11 @@ pub fn get_interest_rate(env: Env, denom: Symbol) -> u128 {
     if utilization_rate <= optimal_utilization_ratio {
         min_interest_rate
             + utilization_rate * (safe_borrow_max_rate - min_interest_rate)
-            / optimal_utilization_ratio
+                / optimal_utilization_ratio
     } else {
         safe_borrow_max_rate
             + rate_growth_factor * (utilization_rate - optimal_utilization_ratio)
-            / (HUNDRED_PERCENT - optimal_utilization_ratio)
+                / (HUNDRED_PERCENT - optimal_utilization_ratio)
     }
 }
 
@@ -460,13 +455,13 @@ pub fn get_liquidity_rate(env: Env, denom: Symbol) -> u128 {
             expected_annual_interest_income as i128,
             INTEREST_RATE_DECIMALS,
         )
-            .mul(Decimal::from_i128_with_scale(HUNDRED as i128, 0u32))
-            .div(Decimal::from_i128_with_scale(
-                reserves_by_token as i128,
-                token_decimals,
-            ))
-            .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
-            .unwrap();
+        .mul(Decimal::from_i128_with_scale(HUNDRED as i128, 0u32))
+        .div(Decimal::from_i128_with_scale(
+            reserves_by_token as i128,
+            token_decimals,
+        ))
+        .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
+        .unwrap();
 
         liquidity_rate
     }
@@ -490,9 +485,9 @@ pub fn get_current_liquidity_index_ln(env: Env, denom: Symbol) -> u128 {
         .checked_sub(liquidity_index_last_update)
         .unwrap_or_default()) as u128
         * Decimal::from_i128_with_scale(
-        (liquidity_rate / HUNDRED + INTEREST_RATE_MULTIPLIER) as i128,
-        INTEREST_RATE_DECIMALS,
-    )
+            (liquidity_rate / HUNDRED + INTEREST_RATE_MULTIPLIER) as i128,
+            INTEREST_RATE_DECIMALS,
+        )
         .ln()
         .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
         .unwrap()
@@ -652,9 +647,9 @@ pub fn get_available_to_borrow(env: Env, user: Address, denom: Symbol) -> u128 {
             (max_allowed_borrow_amount_usd - sum_user_borrow_balance_usd) as i128,
             USD_DECIMALS,
         )
-            .div(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
-            .to_u128_with_decimals(token_decimals)
-            .unwrap();
+        .div(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
+        .to_u128_with_decimals(token_decimals)
+        .unwrap();
 
         let token_liquidity = get_available_liquidity_by_token(env.clone(), denom.clone());
 
@@ -695,9 +690,9 @@ pub fn get_available_to_redeem(env: Env, user: Address, denom: Symbol) -> u128 {
                     (sum_collateral_balance_usd - required_collateral_balance_usd) as i128,
                     USD_DECIMALS,
                 )
-                    .div(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
-                    .to_u128_with_decimals(token_decimals)
-                    .unwrap();
+                .div(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
+                .to_u128_with_decimals(token_decimals)
+                .unwrap();
 
                 if available_to_redeem > user_token_balance {
                     available_to_redeem = user_token_balance;

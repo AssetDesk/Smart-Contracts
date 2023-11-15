@@ -337,24 +337,24 @@ impl LendingContract {
             user_borrow_amount_with_interest as i128,
             borrowed_token_decimals,
         )
-            .mul(Decimal::from_i128_with_scale(
-                user_borrowing_info.average_interest_rate as i128,
-                INTEREST_RATE_DECIMALS,
-            ))
-            .add(
-                Decimal::from_i128_with_scale(amount as i128, borrowed_token_decimals).mul(
-                    Decimal::from_i128_with_scale(
-                        current_interest_rate as i128,
-                        INTEREST_RATE_DECIMALS,
-                    ),
+        .mul(Decimal::from_i128_with_scale(
+            user_borrowing_info.average_interest_rate as i128,
+            INTEREST_RATE_DECIMALS,
+        ))
+        .add(
+            Decimal::from_i128_with_scale(amount as i128, borrowed_token_decimals).mul(
+                Decimal::from_i128_with_scale(
+                    current_interest_rate as i128,
+                    INTEREST_RATE_DECIMALS,
                 ),
-            ))
-            .div(Decimal::from_i128_with_scale(
-                new_user_borrow_amount as i128,
-                borrowed_token_decimals,
-            ))
-            .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
-            .unwrap();
+            ),
+        ))
+        .div(Decimal::from_i128_with_scale(
+            new_user_borrow_amount as i128,
+            borrowed_token_decimals,
+        ))
+        .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
+        .unwrap();
 
         // updating user borrowing info
         let new_user_borrowing_info: UserBorrowingInfo = UserBorrowingInfo {
@@ -368,9 +368,9 @@ impl LendingContract {
         let expected_annual_interest_income: u128 = total_borrow_data
             .expected_annual_interest_income
             - Decimal::from_i128_with_scale(
-            user_borrowing_info.borrowed_amount as i128,
-            borrowed_token_decimals,
-        )
+                user_borrowing_info.borrowed_amount as i128,
+                borrowed_token_decimals,
+            )
             .mul(Decimal::from_i128_with_scale(
                 (user_borrowing_info.average_interest_rate / HUNDRED) as i128,
                 INTEREST_RATE_DECIMALS,
@@ -378,9 +378,9 @@ impl LendingContract {
             .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
             .unwrap()
             + Decimal::from_i128_with_scale(
-            new_user_borrow_amount as i128,
-            borrowed_token_decimals,
-        )
+                new_user_borrow_amount as i128,
+                borrowed_token_decimals,
+            )
             .mul(Decimal::from_i128_with_scale(
                 (average_interest_rate / HUNDRED) as i128,
                 INTEREST_RATE_DECIMALS,
@@ -394,9 +394,9 @@ impl LendingContract {
 
         let total_average_interest_rate = HUNDRED
             * Decimal::from_i128_with_scale(
-            expected_annual_interest_income as i128,
-            INTEREST_RATE_DECIMALS,
-        )
+                expected_annual_interest_income as i128,
+                INTEREST_RATE_DECIMALS,
+            )
             .div(Decimal::from_i128_with_scale(
                 total_borrowed_amount as i128,
                 borrowed_token_decimals,
@@ -563,9 +563,9 @@ impl LendingContract {
 
         let expected_annual_interest_income = total_borrow_data.expected_annual_interest_income
             + Decimal::from_i128_with_scale(
-            (user_borrow_amount_with_interest - user_borrowing_info.borrowed_amount) as i128,
-            repay_token_decimals,
-        )
+                (user_borrow_amount_with_interest - user_borrowing_info.borrowed_amount) as i128,
+                repay_token_decimals,
+            )
             .mul(Decimal::from_i128_with_scale(
                 (user_borrowing_info.average_interest_rate / HUNDRED) as i128,
                 INTEREST_RATE_DECIMALS,
@@ -573,12 +573,12 @@ impl LendingContract {
             .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
             .unwrap()
             - Decimal::from_i128_with_scale((repay_amount) as i128, repay_token_decimals)
-            .mul(Decimal::from_i128_with_scale(
-                (user_borrowing_info.average_interest_rate / HUNDRED) as i128,
-                INTEREST_RATE_DECIMALS,
-            ))
-            .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
-            .unwrap();
+                .mul(Decimal::from_i128_with_scale(
+                    (user_borrowing_info.average_interest_rate / HUNDRED) as i128,
+                    INTEREST_RATE_DECIMALS,
+                ))
+                .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
+                .unwrap();
 
         let total_borrowed_amount: u128 = total_borrow_data.total_borrowed_amount
             + user_borrow_amount_with_interest
@@ -589,9 +589,9 @@ impl LendingContract {
         if total_borrowed_amount != 0u128 {
             total_average_interest_rate = HUNDRED
                 * Decimal::from_i128_with_scale(
-                expected_annual_interest_income as i128,
-                INTEREST_RATE_DECIMALS,
-            )
+                    expected_annual_interest_income as i128,
+                    INTEREST_RATE_DECIMALS,
+                )
                 .div(Decimal::from_i128_with_scale(
                     total_borrowed_amount as i128,
                     repay_token_decimals,
@@ -720,9 +720,9 @@ impl LendingContract {
                     let expected_annual_interest_income = total_borrow_data
                         .expected_annual_interest_income
                         - Decimal::from_i128_with_scale(
-                        (user_borrowing_info.borrowed_amount) as i128,
-                        token_decimals,
-                    )
+                            (user_borrowing_info.borrowed_amount) as i128,
+                            token_decimals,
+                        )
                         .mul(Decimal::from_i128_with_scale(
                             (user_borrowing_info.average_interest_rate / HUNDRED) as i128,
                             INTEREST_RATE_DECIMALS,
@@ -737,9 +737,9 @@ impl LendingContract {
                     if total_borrowed_amount != 0u128 {
                         total_average_interest_rate = HUNDRED
                             * Decimal::from_i128_with_scale(
-                            expected_annual_interest_income as i128,
-                            INTEREST_RATE_DECIMALS,
-                        )
+                                expected_annual_interest_income as i128,
+                                INTEREST_RATE_DECIMALS,
+                            )
                             .div(Decimal::from_i128_with_scale(
                                 total_borrowed_amount as i128,
                                 token_decimals,
@@ -795,12 +795,12 @@ impl LendingContract {
                     new_liquidator_token_balance as i128,
                     token_decimals,
                 )
-                    .div(Decimal::from_i128_with_scale(
-                        mm_token_price as i128,
-                        token_decimals,
-                    ))
-                    .to_u128_with_decimals(token_decimals)
-                    .unwrap();
+                .div(Decimal::from_i128_with_scale(
+                    mm_token_price as i128,
+                    token_decimals,
+                ))
+                .to_u128_with_decimals(token_decimals)
+                .unwrap();
 
                 let mut liquidator_mm_balance_map: Map<Symbol, u128> = env
                     .storage()
@@ -922,7 +922,7 @@ impl LendingContract {
         );
     }
 
-    pub fn     set_token_interest_rate_params(
+    pub fn set_token_interest_rate_params(
         env: Env,
         denom: Symbol,
         min_interest_rate: u128,
@@ -1007,5 +1007,5 @@ impl LendingContract {
     // }
 }
 
-mod test;
 mod storage;
+mod test;

@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use soroban_sdk::{contracttype, Env, Address, token};
+use soroban_sdk::{contracttype, token, Address, Env};
 
 pub(crate) const DAY_IN_LEDGERS: u32 = 17280;
 pub(crate) const WEEK_BUMP_AMOUNT: u32 = 7 * DAY_IN_LEDGERS;
@@ -16,7 +16,6 @@ pub enum DataKey {
     MarginPositionsContract,
     Admin,
 }
-
 
 pub fn has_admin(e: &Env) -> bool {
     let key = DataKey::Admin;
@@ -49,7 +48,6 @@ pub fn set_lending_contract(e: &Env, lending_contract: &Address) {
         .bump(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
 }
 
-
 pub fn get_margin_contract(e: &Env) -> Address {
     let key = DataKey::MarginPositionsContract;
     e.storage().persistent().get(&key).unwrap()
@@ -68,5 +66,3 @@ pub fn move_token(env: &Env, token: &Address, from: &Address, to: &Address, tran
     let token_client = token::Client::new(&env, &token);
     token_client.transfer(&from, to, &transfer_amount);
 }
-
-

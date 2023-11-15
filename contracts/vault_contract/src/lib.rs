@@ -1,8 +1,7 @@
 #![no_std]
 
-
-use soroban_sdk::{contract, contractimpl, Env, Address};
 use crate::storage::*;
+use soroban_sdk::{contract, contractimpl, Address, Env};
 
 #[contract]
 pub struct Contract;
@@ -10,7 +9,12 @@ pub struct Contract;
 #[contractimpl]
 impl Contract {
     // Initializes the contract with the specified admin, lending_contract margin_contract and addresses.
-    pub fn initialize(env: Env, lending_contract: Address, margin_contract: Address, admin: Address) {
+    pub fn initialize(
+        env: Env,
+        lending_contract: Address,
+        margin_contract: Address,
+        admin: Address,
+    ) {
         if has_admin(&env) {
             panic!("already initialized")
         }
@@ -28,7 +32,6 @@ impl Contract {
         set_lending_contract(&env, &lending_contract);
     }
 
-
     pub fn set_margin_positions_contract(env: Env, margin_contract: Address) {
         // Admin only
         let admin: Address = get_admin(&env);
@@ -37,7 +40,12 @@ impl Contract {
         set_margin_contract(&env, &margin_contract);
     }
 
-    pub fn redeem_from_vault_contract(env: Env, user_address: Address, token_address: Address, amount: u128) {
+    pub fn redeem_from_vault_contract(
+        env: Env,
+        user_address: Address,
+        token_address: Address,
+        amount: u128,
+    ) {
         // Admin only
         let lending_contract: Address = get_lending_contract(&env);
         lending_contract.require_auth();
@@ -52,7 +60,12 @@ impl Contract {
     }
 
     // redeem_from_vault_contract_margin - for margin positions contract
-    pub fn redeem_from_vault_contract_m(env: Env, user_address: Address, token_address: Address, amount: u128) {
+    pub fn redeem_from_vault_contract_m(
+        env: Env,
+        user_address: Address,
+        token_address: Address,
+        amount: u128,
+    ) {
         // Admin only
         let margin_positions_contract: Address = get_margin_contract(&env);
         margin_positions_contract.require_auth();
@@ -66,7 +79,12 @@ impl Contract {
         )
     }
 
-    pub fn borrow_from_vault_contract(env: Env, user_address: Address, token_address: Address, amount: u128) {
+    pub fn borrow_from_vault_contract(
+        env: Env,
+        user_address: Address,
+        token_address: Address,
+        amount: u128,
+    ) {
         // Admin only
         let lending_contract: Address = get_lending_contract(&env);
         lending_contract.require_auth();
@@ -81,7 +99,6 @@ impl Contract {
     }
 }
 
-
+mod storage;
 #[cfg(test)]
 mod test;
-mod storage;
