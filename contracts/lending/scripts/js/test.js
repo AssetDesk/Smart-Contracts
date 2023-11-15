@@ -204,7 +204,7 @@
 // }
 //
 // async function GetInterestRate(token) {
-//     const func_name = "get_interest_rateget_interest_rate";
+//     const func_name = "get_interest_rate";
 //     const args = [
 //         xdr.ScVal.scvSymbol(token),
 //     ];

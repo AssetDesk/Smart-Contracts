@@ -9,6 +9,7 @@ use std::println;
 use soroban_sdk::testutils::{Address as _, Events, Ledger, LedgerInfo};
 use soroban_sdk::token::Interface;
 use soroban_sdk::{symbol_short, token, Address, Env, IntoVal, String, Symbol};
+use soroban_sdk::arbitrary::std::dbg;
 use token::Client;
 
 mod token_contract {
@@ -428,8 +429,8 @@ pub fn success_borrow_setup() -> (
     contract_client.update_price(&symbol_short!("xlm"), &PRICE_XLM);
     contract_client.update_price(&symbol_short!("eth"), &PRICE_ETH);
 
-    let get_price_xlm: u128 = contract_client.get_price(&symbol_short!("xlm"));
     let get_price_eth: u128 = contract_client.get_price(&symbol_short!("eth"));
+    let get_price_xlm: u128 = contract_client.get_price(&symbol_short!("xlm"));
 
     assert_eq!(get_price_xlm, 1000000000); // 10$
     assert_eq!(get_price_eth, 200000000000); // 2000$
@@ -715,7 +716,7 @@ fn test_get_liquidity_rate() {
     let get_liquidity_rate_xlm: u128 = contract_client.get_liquidity_rate(&symbol_short!("xlm"));
 
     assert_eq!(get_liquidity_rate_xlm, 1153846153846153846); // ~1.154%
-    assert_eq!(get_liquidity_rate_eth, 0);
+    assert_eq!(get_liquidity_rate_eth,0 );
 }
 
 #[test]
@@ -1244,7 +1245,7 @@ fn test_redeem() {
     contract_client.redeem(&user, &symbol_short!("xlm"), &0);
     println!("   Redeem: {:?}", env.budget().cpu_instruction_cost());
     env.budget().reset_unlimited();
-    contract_client.Redeem(&user, &symbol_short!("eth"), &0);
+    contract_client.redeem(&user, &symbol_short!("eth"), &0);
     let available_to_redeem_eth: u128 =
         contract_client.get_available_to_redeem(&user, &symbol_short!("eth"));
     let available_to_redeem_xlm: u128 =

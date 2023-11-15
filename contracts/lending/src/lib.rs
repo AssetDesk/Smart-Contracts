@@ -1,64 +1,25 @@
 #![no_std]
 
-use soroban_sdk::{contract, contracttype, contractimpl, token, Address, Env, Symbol, Vec}; // contracterror, panic_with_error, symbol_short, vec
+use soroban_sdk::{
+    contract, contractimpl, map, symbol_short, token, Address, Env, Map, Symbol, Vec,
+}; // contracterror, panic_with_error, vec
 
 use core::ops::{Add, Div, Mul};
 use rust_decimal::prelude::{Decimal, MathematicalOps, ToPrimitive};
 
 use crate::storage::*;
 
-const PERCENT_DECIMALS: u32 = 5;
-const HUNDRED_PERCENT: u128 = 100 * 10u128.pow(PERCENT_DECIMALS);
-
-const INTEREST_RATE_DECIMALS: u32 = 18;
-const INTEREST_RATE_MULTIPLIER: u128 = 10u128.pow(INTEREST_RATE_DECIMALS);
-const HUNDRED: u128 = 100;
-const YEAR_IN_SECONDS: u128 = 31536000; // 365 days
-
-const USD_DECIMALS: u32 = 8;
-
-pub trait DecimalExt {
-    fn to_u128_with_decimals(&self, decimals: u32) -> Result<u128, rust_decimal::Error>;
-}
-
-// impl DecimalExt for Decimal {
-//     // converting high-precise numbers into u128
-//     fn to_u128_with_decimals(&self, decimals: u32) -> Result<u128, rust_decimal::Error> {
-//         let s = self.to_string();
-//         let (left, right) = s.split_once(".").unwrap_or((&s, ""));
-//         let mut right = right.to_string();
-//         let right_len = right.len() as u32;
-//         if right_len > decimals {
-//             right.truncate(decimals.try_into().unwrap());
-//         } else if right_len < decimals {
-//             let zeroes = decimals - right_len;
-//             right.push_str(&"0".repeat(zeroes.try_into().unwrap()));
-//         }
-//         let s = format!("{}{}", left, right);
-//         Ok(s.parse::<u128>().unwrap_or(0))
-//     }
-// }
-
-impl DecimalExt for Decimal {
-    // converting high-precise numbers into u128
-    fn to_u128_with_decimals(&self, decimals: u32) -> Result<u128, rust_decimal::Error> {
-        let number_dec_new: Decimal = self * Decimal::new(10_i64.pow(decimals), 0);
-        Ok(number_dec_new.to_u128().unwrap_or(0))
-    }
-}
-
-
 #[contract]
 pub struct LendingContract;
 
 #[contractimpl]
 impl LendingContract {
-    pub fn initialize(env: Env, admin: Address, liquidator: Address) {
-        if had_admin(&env) {
+    pub fn initialize(e: Env, admin: Address, liquidator: Address) {
+        if has_admin(&e) {
             panic!("already initialized")
         }
-        set_admin(&env, &admin);
-        write_liquidator(&env, &liquidator);
+        set_admin(&e, &admin);
+        set_liquidator(&e, &liquidator);
     }
 
     pub fn deposit(env: Env, user_address: Address, denom: Symbol, deposited_token_amount: u128) {
@@ -127,8 +88,7 @@ impl LendingContract {
         safe_borrow_max_rate: u128,
         rate_growth_factor: u128,
         optimal_utilization_ratio: u128,
-    )
-    {
+    ) {
         // Admin only
         let admin: Address = get_admin(&env);
         admin.require_auth();
@@ -333,7 +293,7 @@ impl LendingContract {
     pub fn borrow(env: Env, user: Address, denom: Symbol, amount: u128) {
         user.require_auth();
 
-        // let liquidator = read_liquidator(&env);
+        // let liquidator = get_liquidator(&env);
 
         // if user == liquidator {
         //     panic!("The liquidator cannot borrow");
@@ -362,7 +322,7 @@ impl LendingContract {
         execute_update_liquidity_index_data(env.clone(), denom.clone());
 
         let user_borrow_amount_with_interest: u128 =
-            get_user_borrow_with_interest(env.clone(), user.clone(), denom.clone());
+            get_user_borrow_amount_with_interest(env.clone(), user.clone(), denom.clone());
 
         let user_borrowing_info: UserBorrowingInfo =
             get_user_borrowing_info(env.clone(), user.clone(), denom.clone());
@@ -576,7 +536,7 @@ impl LendingContract {
         execute_update_liquidity_index_data(env.clone(), repay_token.clone());
 
         let user_borrow_amount_with_interest =
-            get_user_borrow_with_interest(env.clone(), user.clone(), repay_token.clone());
+            get_user_borrow_amount_with_interest(env.clone(), user.clone(), repay_token.clone());
 
         if repay_amount == 0 {
             repay_amount = user_borrow_amount_with_interest;
@@ -691,7 +651,7 @@ impl LendingContract {
 
     pub fn liquidation(env: Env, user: Address) {
         // liquidator only
-        let liquidator: Address = read_liquidator(&env);
+        let liquidator: Address = get_liquidator(&env);
         liquidator.require_auth();
 
         let user_utilization_rate = get_user_utilization_rate(env.clone(), user.clone());
@@ -732,7 +692,7 @@ impl LendingContract {
             }
 
             let user_borrow_amount_with_interest =
-                get_user_borrow_with_interest(env.clone(), user.clone(), token.clone());
+                get_user_borrow_amount_with_interest(env.clone(), user.clone(), token.clone());
 
             if user_borrow_amount_with_interest > 0 || user_token_balance > 0 {
                 let liquidator_balance =
@@ -890,11 +850,11 @@ impl LendingContract {
     }
 
     pub fn get_user_borrow_with_interest(env: Env, user: Address, denom: Symbol) -> u128 {
-        get_user_borrow_with_interest(env, user, denom)
+        get_user_borrow_amount_with_interest(env, user, denom)
     }
 
     pub fn get_user_max_allowed_borrow_usd(env: Env, user: Address) -> u128 {
-        get_user_max_allowed_borrow_usd(env, user)
+        get_user_max_allowed_borrow_amount_usd(env, user)
     }
 
     pub fn get_user_borrowed_usd(env: Env, user: Address) -> u128 {
@@ -962,7 +922,7 @@ impl LendingContract {
         );
     }
 
-    pub fn set_token_interest_rate_params(
+    pub fn     set_token_interest_rate_params(
         env: Env,
         denom: Symbol,
         min_interest_rate: u128,
