@@ -20,11 +20,11 @@ pub enum DataKey {
     SupportedTokensList,                       // List of supported tokens
     LiquidityIndexData,                // Map of LiquidityIndexData per denom
     UserMMTokenBalance(Address),      // user mm token balance per denom
-    ReserveConfiguration,               // ReserveConfiguration per denom
-    TokensInterestRateModelParams,    // TokenInterestRateModelParams per denom
-    Prices,                              // price for denom
-    USER_DEPOSIT_AS_COLLATERAL(Address, Symbol), // bool
-    USER_BORROWING_INFO(Address, Symbol),        // UserBorrowingInfo per denom
+    ReserveConfiguration,               //Map ReserveConfiguration per denom
+    TokensInterestRateModelParams,    // Map TokenInterestRateModelParams per denom
+    Prices,                              // Map price for denom
+    UserDepositAsCollateral(Address), // Map of bool per denom
+    UserBorrowingInfo(Address),        // Map UserBorrowingInfo per denom
 }
 
 #[contracttype]
