@@ -206,7 +206,9 @@ fn get_user_max_allowed_borrow_amount_usd(env: Env, user: Address) -> u128 {
             let reserve_configuration: ReserveConfiguration = env
                 .storage()
                 .persistent()
-                .get(&DataKey::RESERVE_CONFIGURATION(token.clone()))
+                .get::<DataKey, Map<Symbol,ReserveConfiguration>>(&DataKey::RESERVE_CONFIGURATION)
+                .unwrap()
+                .get(token.clone())
                 .unwrap();
 
             let loan_to_value_ratio: u128 = reserve_configuration.loan_to_value_ratio;
@@ -245,7 +247,9 @@ fn get_reserve_configuration(env: Env, denom: Symbol) -> ReserveConfiguration {
     let reserve_configuration: ReserveConfiguration = env
         .storage()
         .persistent()
-        .get(&DataKey::RESERVE_CONFIGURATION(denom.clone()))
+        .get(&DataKey::RESERVE_CONFIGURATION)
+        .unwrap_or(Map::new(&env))
+        .get(denom.clone())
         .unwrap();
     reserve_configuration
 }
@@ -613,7 +617,9 @@ fn get_user_liquidation_threshold(env: Env, user: Address) -> u128 {
             let reserve_configuration: ReserveConfiguration = env
                 .storage()
                 .persistent()
-                .get(&DataKey::RESERVE_CONFIGURATION(token.clone()))
+                .get::<DataKey,  Map<Symbol,ReserveConfiguration>>(&DataKey::RESERVE_CONFIGURATION)
+                .unwrap()
+                .get(token.clone())
                 .unwrap();
             let liquidation_threshold = reserve_configuration.liquidation_threshold;
 
@@ -769,12 +775,18 @@ impl LendingContract {
             loan_to_value_ratio,
             liquidation_threshold,
         };
+        let mut reserve_map: Map<Symbol, ReserveConfiguration> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RESERVE_CONFIGURATION)
+            .unwrap_or(Map::new(&env));
+        reserve_map.set(denom.clone(), reserve_configuration);
         env.storage().persistent().set(
-            &DataKey::RESERVE_CONFIGURATION(denom.clone()),
-            &reserve_configuration,
+            &DataKey::RESERVE_CONFIGURATION,
+            &reserve_map,
         );
         env.storage().persistent().bump(
-            &DataKey::RESERVE_CONFIGURATION(denom.clone()),
+            &DataKey::RESERVE_CONFIGURATION,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
         );
@@ -1467,16 +1479,22 @@ impl LendingContract {
             panic!("There is no such supported token yet");
         }
 
-        env.storage().persistent().set(
-            &DataKey::RESERVE_CONFIGURATION(denom.clone()),
-            &ReserveConfiguration {
+        let mut reserve_map: Map<Symbol, ReserveConfiguration> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RESERVE_CONFIGURATION)
+            .unwrap_or(Map::new(&env));
+        reserve_map.set(denom.clone(), ReserveConfiguration {
                 denom: denom.clone(),
                 loan_to_value_ratio,
                 liquidation_threshold,
-            },
+            });
+        env.storage().persistent().set(
+            &DataKey::RESERVE_CONFIGURATION,
+            &reserve_map,
         );
         env.storage().persistent().bump(
-            &DataKey::RESERVE_CONFIGURATION(denom.clone()),
+            &DataKey::RESERVE_CONFIGURATION,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
         );
