@@ -16,23 +16,44 @@ mod token_contract {
     soroban_sdk::contractimport!(file = "./token/soroban_token_contract.optimized.wasm");
 }
 
+mod vault_contract {
+    soroban_sdk::contractimport!(file = "../../target/wasm32-unknown-unknown/release/vault_contract.wasm"
+);
+}
+
+
 fn create_custom_token<'a>(
-    e: &Env,
+    env: &Env,
     admin: &Address,
     name: &str,
     symbol: &str,
     decimals: &u32,
 ) -> token_contract::Client<'a> {
-    let token_id = &e.register_contract_wasm(None, token_contract::WASM);
-    let token = token_contract::Client::new(e, &token_id);
+    let token_id = &env.register_contract_wasm(None, token_contract::WASM);
+    let token = token_contract::Client::new(env, &token_id);
     token.initialize(
         admin,
         decimals,
-        &String::from_slice(&e, name),
-        &String::from_slice(&e, symbol),
+        &String::from_slice(&env, name),
+        &String::from_slice(&env, symbol),
     );
     token
 }
+
+fn create_vault_contract<'a>(
+    env: &Env,
+    admin: &Address,
+    lending_contract_address: &Address,
+    margin_contract_address: &Address,
+) -> (Address, vault_contract::Client<'a>) {
+    let vault_contract_address = &env.register_contract_wasm(None, vault_contract::WASM);
+    let vault_contract_client = vault_contract::Client::new(env, &vault_contract_address);
+    vault_contract_client.initialize(
+        lending_contract_address, margin_contract_address, admin,
+    );
+    (vault_contract_address.clone(), vault_contract_client)
+}
+
 
 pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, Address, Address) {
     const TOKENS_DECIMALS: u32 = 18;
@@ -61,13 +82,24 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
     env.mock_all_auths();
 
     env.budget().reset_unlimited();
-    let contract_address = env.register_contract(None, LendingContract);
-    let contract_client = LendingContractClient::new(&env, &contract_address);
+    let lending_contract_address = env.register_contract(None, LendingContract);
+    let lending_contract_client = LendingContractClient::new(&env, &lending_contract_address);
     let admin = Address::random(&env);
     let user1 = Address::random(&env);
     let liquidator = Address::random(&env);
 
-    contract_client.initialize(&admin, &liquidator);
+    let margin_contract_address = Address::random(&env);
+
+    let (vault_contract_address, vault_contract_client) = create_vault_contract(&env, &admin, &lending_contract_address, &margin_contract_address);
+
+    lending_contract_client.initialize(&admin, &liquidator, &vault_contract_address);
+
+
+    let vault_contract_obtained_from_lending: Address = lending_contract_client.get_vault_contract();
+    let lending_contract_obtained_from_vault: Address = vault_contract_client.get_lending_contract();
+
+    assert_eq!(vault_contract_obtained_from_lending, vault_contract_address);
+    assert_eq!(lending_contract_obtained_from_vault, lending_contract_address);
 
     let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
@@ -83,7 +115,7 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
         &i128::try_from(INIT_LIQUIDATOR_BALANCE_ETH).unwrap(),
     );
 
-    contract_client.add_markets(
+    lending_contract_client.add_markets(
         &symbol_short!("xlm"),
         &token_xlm.address,
         &symbol_short!("Xlm"),
@@ -96,7 +128,7 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
         &OPTIMAL_UTILIZATION_RATIO,
     );
 
-    contract_client.add_markets(
+    lending_contract_client.add_markets(
         &symbol_short!("eth"),
         &token_eth.address,
         &symbol_short!("Eth"),
@@ -113,21 +145,22 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
     // token_xlm.transfer(&admin, &contract_address, &i128::try_from(CONTRACT_RESERVES).unwrap());
     token_eth.transfer(
         &admin,
-        &contract_address,
+        &lending_contract_address,
         &i128::try_from(CONTRACT_RESERVES).unwrap(),
     );
 
     // contract_client.update_price(&symbol_short!("xlm"), &PRICE_XLM);
     // contract_client.update_price(&symbol_short!("eth"), &PRICE_ETH);
 
-    contract_client.deposit(&user1, &symbol_short!("eth"), &FIRST_DEPOSIT_AMOUNT_ETH);
+
+    lending_contract_client.deposit(&user1, &symbol_short!("eth"), &FIRST_DEPOSIT_AMOUNT_ETH);
     // contract_client.deposit(&admin, &symbol_short!("eth"), &(FIRST_DEPOSIT_AMOUNT_ETH * 15 / 10));
 
     // contract_client.toggle_collateral_setting(&user1, &symbol_short!("eth"));
     // contract_client.toggle_collateral_setting(&admin, &symbol_short!("eth"));
 
     let mut user_deposited_balance: u128 =
-        contract_client.get_deposit(&user1, &symbol_short!("eth"));
+        lending_contract_client.get_deposit(&user1, &symbol_short!("eth"));
 
     assert_eq!(user_deposited_balance, FIRST_DEPOSIT_AMOUNT_ETH);
     assert_eq!(
@@ -135,14 +168,14 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
         (INIT_USER_BALANCE - FIRST_DEPOSIT_AMOUNT_ETH) as i128
     );
     assert_eq!(
-        token_eth.balance(&contract_address),
-        (CONTRACT_RESERVES + FIRST_DEPOSIT_AMOUNT_ETH) as i128
+        token_eth.balance(&vault_contract_address),
+         FIRST_DEPOSIT_AMOUNT_ETH as i128
     );
 
-    contract_client.deposit(&user1, &symbol_short!("eth"), &SECOND_DEPOSIT_AMOUNT_ETH);
+    lending_contract_client.deposit(&user1, &symbol_short!("eth"), &SECOND_DEPOSIT_AMOUNT_ETH);
     // contract_client.borrow(&admin, &symbol_short!("eth"), &(SECOND_DEPOSIT_AMOUNT_ETH / 2));
 
-    user_deposited_balance = contract_client.get_deposit(&user1, &symbol_short!("eth"));
+    user_deposited_balance = lending_contract_client.get_deposit(&user1, &symbol_short!("eth"));
 
     assert_eq!(
         user_deposited_balance,
@@ -153,15 +186,14 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
         (INIT_USER_BALANCE - FIRST_DEPOSIT_AMOUNT_ETH - SECOND_DEPOSIT_AMOUNT_ETH) as i128
     );
     assert_eq!(
-        token_eth.balance(&contract_address),
-        (CONTRACT_RESERVES + FIRST_DEPOSIT_AMOUNT_ETH + SECOND_DEPOSIT_AMOUNT_ETH) as i128
+        token_eth.balance(&vault_contract_address),
+        (FIRST_DEPOSIT_AMOUNT_ETH + SECOND_DEPOSIT_AMOUNT_ETH) as i128
     );
 
-    (contract_client, admin, user1)
+    (lending_contract_client, admin, user1)
 }
 
-pub fn success_deposit_of_diff_token_with_prices(
-) -> (Env, LendingContractClient<'static>, Address, Address) {
+pub fn success_deposit_of_diff_token_with_prices() -> (Env, LendingContractClient<'static>, Address, Address) {
     const TOKENS_DECIMALS: u32 = 18;
 
     const INIT_BALANCE_ETH: u128 = 1000 * 10u128.pow(TOKENS_DECIMALS);
@@ -197,13 +229,24 @@ pub fn success_deposit_of_diff_token_with_prices(
     env.mock_all_auths();
 
     env.budget().reset_unlimited();
-    let contract_address = env.register_contract(None, LendingContract);
-    let contract_client = LendingContractClient::new(&env, &contract_address);
+    let lending_contract_address = env.register_contract(None, LendingContract);
+    let lending_contract_client = LendingContractClient::new(&env, &lending_contract_address);
     let admin = Address::random(&env);
     let user1 = Address::random(&env);
     let liquidator = Address::random(&env);
+    let margin_contract_address = Address::random(&env);
 
-    contract_client.initialize(&admin, &liquidator);
+
+    let (vault_contract_address, vault_contract_client) = create_vault_contract(&env, &admin, &lending_contract_address, &margin_contract_address);
+
+    lending_contract_client.initialize(&admin, &liquidator, &vault_contract_address);
+
+
+    let vault_contract_obtained_from_lending: Address = lending_contract_client.get_vault_contract();
+    let lending_contract_obtained_from_vault: Address = vault_contract_client.get_lending_contract();
+
+    assert_eq!(vault_contract_obtained_from_lending, vault_contract_address);
+    assert_eq!(lending_contract_obtained_from_vault, lending_contract_address);
 
     let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
@@ -223,7 +266,7 @@ pub fn success_deposit_of_diff_token_with_prices(
         &i128::try_from(INIT_LIQUIDATOR_BALANCE_ETH).unwrap(),
     );
 
-    contract_client.add_markets(
+    lending_contract_client.add_markets(
         &symbol_short!("xlm"),
         &token_xlm.address,
         &symbol_short!("Xlm"),
@@ -236,7 +279,7 @@ pub fn success_deposit_of_diff_token_with_prices(
         &OPTIMAL_UTILIZATION_RATIO,
     );
 
-    contract_client.add_markets(
+    lending_contract_client.add_markets(
         &symbol_short!("eth"),
         &token_eth.address,
         &symbol_short!("Eth"),
@@ -249,31 +292,31 @@ pub fn success_deposit_of_diff_token_with_prices(
         &OPTIMAL_UTILIZATION_RATIO,
     );
 
-    // Funding contract
+    // Funding vault contract
     token_xlm.transfer(
         &admin,
-        &contract_address,
+        &vault_contract_address,
         &i128::try_from(CONTRACT_RESERVES_XLM).unwrap(),
     );
     token_eth.transfer(
         &admin,
-        &contract_address,
+        &vault_contract_address,
         &i128::try_from(CONTRACT_RESERVES_ETH).unwrap(),
     );
 
-    contract_client.update_price(&symbol_short!("xlm"), &PRICE_XLM);
-    contract_client.update_price(&symbol_short!("eth"), &PRICE_ETH);
+    lending_contract_client.update_price(&symbol_short!("xlm"), &PRICE_XLM);
+    lending_contract_client.update_price(&symbol_short!("eth"), &PRICE_ETH);
 
-    let get_price_xlm: u128 = contract_client.get_price(&symbol_short!("xlm"));
-    let get_price_eth: u128 = contract_client.get_price(&symbol_short!("eth"));
+    let get_price_xlm: u128 = lending_contract_client.get_price(&symbol_short!("xlm"));
+    let get_price_eth: u128 = lending_contract_client.get_price(&symbol_short!("eth"));
 
     assert_eq!(get_price_xlm, 1000000000); // 10$
     assert_eq!(get_price_eth, 200000000000); // 2000$
 
-    contract_client.deposit(&user1, &symbol_short!("eth"), &DEPOSIT_AMOUNT_ETH);
+    lending_contract_client.deposit(&user1, &symbol_short!("eth"), &DEPOSIT_AMOUNT_ETH);
 
     let mut user_deposited_balance: u128 =
-        contract_client.get_deposit(&user1, &symbol_short!("eth"));
+        lending_contract_client.get_deposit(&user1, &symbol_short!("eth"));
 
     assert_eq!(user_deposited_balance, DEPOSIT_AMOUNT_ETH);
     assert_eq!(
@@ -281,13 +324,13 @@ pub fn success_deposit_of_diff_token_with_prices(
         (INIT_BALANCE_ETH - DEPOSIT_AMOUNT_ETH) as i128
     );
     assert_eq!(
-        token_eth.balance(&contract_address),
+        token_eth.balance(&vault_contract_address),
         (CONTRACT_RESERVES_ETH + DEPOSIT_AMOUNT_ETH) as i128
     );
 
-    contract_client.deposit(&user1, &symbol_short!("xlm"), &DEPOSIT_AMOUNT_XLM);
+    lending_contract_client.deposit(&user1, &symbol_short!("xlm"), &DEPOSIT_AMOUNT_XLM);
 
-    user_deposited_balance = contract_client.get_deposit(&user1, &symbol_short!("xlm"));
+    user_deposited_balance = lending_contract_client.get_deposit(&user1, &symbol_short!("xlm"));
 
     assert_eq!(user_deposited_balance, DEPOSIT_AMOUNT_XLM);
     assert_eq!(
@@ -295,15 +338,14 @@ pub fn success_deposit_of_diff_token_with_prices(
         (INIT_BALANCE_XLM - DEPOSIT_AMOUNT_XLM) as i128
     );
     assert_eq!(
-        token_xlm.balance(&contract_address),
+        token_xlm.balance(&vault_contract_address),
         (CONTRACT_RESERVES_XLM + DEPOSIT_AMOUNT_XLM) as i128
     );
 
-    (env, contract_client, admin, user1)
+    (env, lending_contract_client, admin, user1)
 }
 
-pub fn success_deposit_as_collateral_of_diff_token_with_prices(
-) -> (Env, LendingContractClient<'static>, Address, Address) {
+pub fn success_deposit_as_collateral_of_diff_token_with_prices() -> (Env, LendingContractClient<'static>, Address, Address) {
     let (env, contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
 
     contract_client.toggle_collateral_setting(&user, &symbol_short!("eth"));
@@ -362,14 +404,24 @@ pub fn success_borrow_setup() -> (
     env.mock_all_auths();
 
     env.budget().reset_unlimited();
-    let contract_address = env.register_contract(None, LendingContract);
-    let contract_client = LendingContractClient::new(&env, &contract_address);
+    let lending_contract_address = env.register_contract(None, LendingContract);
+    let lending_contract_client = LendingContractClient::new(&env, &lending_contract_address);
     let admin = Address::random(&env);
     let user1 = Address::random(&env);
     let liquidator = Address::random(&env);
 
-    contract_client.initialize(&admin, &liquidator);
+    let margin_contract_address = Address::random(&env);
 
+    let (vault_contract_address, vault_contract_client) = create_vault_contract(&env, &admin, &lending_contract_address, &margin_contract_address);
+
+    lending_contract_client.initialize(&admin, &liquidator, &vault_contract_address);
+
+
+    let vault_contract_obtained_from_lending: Address = lending_contract_client.get_vault_contract();
+    let lending_contract_obtained_from_vault: Address = vault_contract_client.get_lending_contract();
+
+    assert_eq!(vault_contract_obtained_from_lending, vault_contract_address);
+    assert_eq!(lending_contract_obtained_from_vault, lending_contract_address);
     let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
     let token_usdt = create_custom_token(&env, &admin, "USDT", "usdt", &TOKENS_DECIMALS);
@@ -390,7 +442,7 @@ pub fn success_borrow_setup() -> (
         &i128::try_from(INIT_LIQUIDATOR_BALANCE_ETH).unwrap(),
     );
 
-    contract_client.add_markets(
+    lending_contract_client.add_markets(
         &symbol_short!("xlm"),
         &token_xlm.address,
         &symbol_short!("xlm"),
@@ -403,7 +455,7 @@ pub fn success_borrow_setup() -> (
         &OPTIMAL_UTILIZATION_RATIO,
     );
 
-    contract_client.add_markets(
+    lending_contract_client.add_markets(
         &symbol_short!("eth"),
         &token_eth.address,
         &symbol_short!("Eth"),
@@ -416,34 +468,34 @@ pub fn success_borrow_setup() -> (
         &OPTIMAL_UTILIZATION_RATIO,
     );
 
-    // Funding contract
+    // Funding vault contract
     token_xlm.transfer(
         &admin,
-        &contract_address,
+        &vault_contract_address,
         &i128::try_from(CONTRACT_RESERVES_XLM).unwrap(),
     );
     token_eth.transfer(
         &admin,
-        &contract_address,
+        &vault_contract_address,
         &i128::try_from(CONTRACT_RESERVES_ETH).unwrap(),
     );
 
-    contract_client.update_price(&symbol_short!("xlm"), &PRICE_XLM);
-    contract_client.update_price(&symbol_short!("eth"), &PRICE_ETH);
+    lending_contract_client.update_price(&symbol_short!("xlm"), &PRICE_XLM);
+    lending_contract_client.update_price(&symbol_short!("eth"), &PRICE_ETH);
 
-    let get_price_eth: u128 = contract_client.get_price(&symbol_short!("eth"));
-    let get_price_xlm: u128 = contract_client.get_price(&symbol_short!("xlm"));
+    let get_price_eth: u128 = lending_contract_client.get_price(&symbol_short!("eth"));
+    let get_price_xlm: u128 = lending_contract_client.get_price(&symbol_short!("xlm"));
 
     assert_eq!(get_price_xlm, 1000000000); // 10$
     assert_eq!(get_price_eth, 200000000000); // 2000$
 
-    contract_client.toggle_collateral_setting(&user1, &symbol_short!("eth"));
-    contract_client.toggle_collateral_setting(&user1, &symbol_short!("xlm"));
+    lending_contract_client.toggle_collateral_setting(&user1, &symbol_short!("eth"));
+    lending_contract_client.toggle_collateral_setting(&user1, &symbol_short!("xlm"));
 
-    contract_client.toggle_collateral_setting(&admin, &symbol_short!("eth"));
-    contract_client.toggle_collateral_setting(&admin, &symbol_short!("xlm"));
+    lending_contract_client.toggle_collateral_setting(&admin, &symbol_short!("eth"));
+    lending_contract_client.toggle_collateral_setting(&admin, &symbol_short!("xlm"));
 
-    contract_client.deposit(&user1, &symbol_short!("eth"), &DEPOSIT_AMOUNT_ETH);
+    lending_contract_client.deposit(&user1, &symbol_short!("eth"), &DEPOSIT_AMOUNT_ETH);
 
     let current_info: LedgerInfo = env.ledger().get();
 
@@ -459,9 +511,9 @@ pub fn success_borrow_setup() -> (
     });
 
     let _available_to_redeem: u128 =
-        contract_client.get_available_to_redeem(&user1, &symbol_short!("eth"));
+        lending_contract_client.get_available_to_redeem(&user1, &symbol_short!("eth"));
 
-    let user_deposited_balance: u128 = contract_client.get_deposit(&user1, &symbol_short!("eth"));
+    let user_deposited_balance: u128 = lending_contract_client.get_deposit(&user1, &symbol_short!("eth"));
 
     assert_eq!(user_deposited_balance, DEPOSIT_AMOUNT_ETH);
 
@@ -471,11 +523,11 @@ pub fn success_borrow_setup() -> (
     );
 
     assert_eq!(
-        token_eth.balance(&contract_address) as u128,
+        token_eth.balance(&vault_contract_address) as u128,
         CONTRACT_RESERVES_ETH + DEPOSIT_AMOUNT_ETH
     );
 
-    contract_client.deposit(&user1, &symbol_short!("xlm"), &DEPOSIT_AMOUNT_XLM);
+    lending_contract_client.deposit(&user1, &symbol_short!("xlm"), &DEPOSIT_AMOUNT_XLM);
 
     env.ledger().set(LedgerInfo {
         timestamp: 2000,
@@ -488,7 +540,7 @@ pub fn success_borrow_setup() -> (
         max_entry_expiration: current_info.max_entry_expiration,
     });
 
-    let user_deposited_balance: u128 = contract_client.get_deposit(&user1, &symbol_short!("xlm"));
+    let user_deposited_balance: u128 = lending_contract_client.get_deposit(&user1, &symbol_short!("xlm"));
 
     assert_eq!(user_deposited_balance, DEPOSIT_AMOUNT_XLM);
 
@@ -498,7 +550,7 @@ pub fn success_borrow_setup() -> (
     );
 
     assert_eq!(
-        token_xlm.balance(&contract_address) as u128,
+        token_xlm.balance(&vault_contract_address) as u128,
         CONTRACT_RESERVES_XLM + DEPOSIT_AMOUNT_XLM
     );
 
@@ -513,11 +565,11 @@ pub fn success_borrow_setup() -> (
         max_entry_expiration: current_info.max_entry_expiration,
     });
 
-    contract_client.borrow(&user1, &symbol_short!("eth"), &BORROW_AMOUNT_ETH);
+    lending_contract_client.borrow(&user1, &symbol_short!("eth"), &BORROW_AMOUNT_ETH);
 
     (
         env,
-        contract_client,
+        lending_contract_client,
         admin,
         user1,
         liquidator,
@@ -559,13 +611,24 @@ fn test_successful_deposits_of_one_token() {
     env.mock_all_auths();
 
     env.budget().reset_unlimited();
-    let contract_address = env.register_contract(None, LendingContract);
-    let contract_client = LendingContractClient::new(&env, &contract_address);
+    let lending_contract_address = env.register_contract(None, LendingContract);
+    let lending_contract_client = LendingContractClient::new(&env, &lending_contract_address);
     let admin = Address::random(&env);
     let user1 = Address::random(&env);
     let liquidator = Address::random(&env);
 
-    contract_client.initialize(&admin, &liquidator);
+    let margin_contract_address = Address::random(&env);
+
+    let (vault_contract_address, vault_contract_client) = create_vault_contract(&env, &admin, &lending_contract_address, &margin_contract_address);
+
+    lending_contract_client.initialize(&admin, &liquidator, &vault_contract_address);
+
+
+    let vault_contract_obtained_from_lending: Address = lending_contract_client.get_vault_contract();
+    let lending_contract_obtained_from_vault: Address = vault_contract_client.get_lending_contract();
+
+    assert_eq!(vault_contract_obtained_from_lending, vault_contract_address);
+    assert_eq!(lending_contract_obtained_from_vault, lending_contract_address);
 
     let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
@@ -576,7 +639,7 @@ fn test_successful_deposits_of_one_token() {
     token_xlm.mint(&admin, &i128::try_from(CONTRACT_RESERVES * 100).unwrap());
     token_eth.mint(&admin, &i128::try_from(CONTRACT_RESERVES * 100).unwrap());
 
-    contract_client.add_markets(
+    lending_contract_client.add_markets(
         &symbol_short!("xlm"),
         &token_xlm.address,
         &symbol_short!("Xlm"),
@@ -589,7 +652,7 @@ fn test_successful_deposits_of_one_token() {
         &OPTIMAL_UTILIZATION_RATIO,
     );
 
-    contract_client.add_markets(
+    lending_contract_client.add_markets(
         &symbol_short!("eth"),
         &token_eth.address,
         &symbol_short!("Eth"),
@@ -605,30 +668,30 @@ fn test_successful_deposits_of_one_token() {
     // Funding contract
     token_xlm.transfer(
         &admin,
-        &contract_address,
+        &lending_contract_address,
         &i128::try_from(CONTRACT_RESERVES / 100).unwrap(),
     );
     token_eth.transfer(
         &admin,
-        &contract_address,
+        &lending_contract_address,
         &i128::try_from(CONTRACT_RESERVES / 100).unwrap(),
     );
 
-    contract_client.update_price(&symbol_short!("xlm"), &PRICE_XLM);
-    contract_client.update_price(&symbol_short!("eth"), &PRICE_ETH);
+    lending_contract_client.update_price(&symbol_short!("xlm"), &PRICE_XLM);
+    lending_contract_client.update_price(&symbol_short!("eth"), &PRICE_ETH);
 
-    contract_client.deposit(&user1, &symbol_short!("eth"), &FIRST_DEPOSIT_AMOUNT);
-    contract_client.deposit(
+    lending_contract_client.deposit(&user1, &symbol_short!("eth"), &FIRST_DEPOSIT_AMOUNT);
+    lending_contract_client.deposit(
         &admin,
         &symbol_short!("eth"),
         &(FIRST_DEPOSIT_AMOUNT * 15 / 10),
     );
 
-    contract_client.toggle_collateral_setting(&user1, &symbol_short!("eth"));
-    contract_client.toggle_collateral_setting(&admin, &symbol_short!("eth"));
+    lending_contract_client.toggle_collateral_setting(&user1, &symbol_short!("eth"));
+    lending_contract_client.toggle_collateral_setting(&admin, &symbol_short!("eth"));
 
     let mut user_deposited_balance: u128 =
-        contract_client.get_deposit(&user1, &symbol_short!("eth"));
+        lending_contract_client.get_deposit(&user1, &symbol_short!("eth"));
 
     assert_eq!(user_deposited_balance, FIRST_DEPOSIT_AMOUNT);
     assert_eq!(
@@ -636,8 +699,8 @@ fn test_successful_deposits_of_one_token() {
         (INIT_USER_BALANCE - FIRST_DEPOSIT_AMOUNT) as i128
     );
 
-    contract_client.deposit(&user1, &symbol_short!("eth"), &SECOND_DEPOSIT_AMOUNT);
-    contract_client.borrow(&admin, &symbol_short!("eth"), &(SECOND_DEPOSIT_AMOUNT / 2));
+    lending_contract_client.deposit(&user1, &symbol_short!("eth"), &SECOND_DEPOSIT_AMOUNT);
+    lending_contract_client.borrow(&admin, &symbol_short!("eth"), &(SECOND_DEPOSIT_AMOUNT / 2));
 
     let current_info: LedgerInfo = env.ledger().get();
 
@@ -657,14 +720,14 @@ fn test_successful_deposits_of_one_token() {
     println!("New timestamp: {:?}", env.ledger().timestamp());
 
     let total_borrow_data: TotalBorrowData =
-        contract_client.get_total_borrow_data(&symbol_short!("eth"));
+        lending_contract_client.get_total_borrow_data(&symbol_short!("eth"));
     println!("Total borrow data: {:?}", total_borrow_data);
 
     let reserves_by_token: u128 =
-        contract_client.get_total_reserves_by_token(&symbol_short!("eth"));
+        lending_contract_client.get_total_reserves_by_token(&symbol_short!("eth"));
     println!("Total Reserves for Eth : {:?}", reserves_by_token);
 
-    user_deposited_balance = contract_client.get_deposit(&user1, &symbol_short!("eth"));
+    user_deposited_balance = lending_contract_client.get_deposit(&user1, &symbol_short!("eth"));
     println!(
         "User initial deposit       : {:?}",
         FIRST_DEPOSIT_AMOUNT + SECOND_DEPOSIT_AMOUNT
@@ -1194,6 +1257,7 @@ fn test_redeem() {
     env.budget().reset_unlimited();
     let available_to_redeem_eth: u128 =
         contract_client.get_available_to_redeem(&user, &symbol_short!("eth"));
+
     println!("CPU costs");
     println!(
         "      get_available_to_redeem eth : {:?}",
@@ -1242,9 +1306,7 @@ fn test_redeem() {
         env.budget().cpu_instruction_cost()
     );
     env.budget().reset_unlimited();
-    contract_client.borrow(&user, &symbol_short!("eth"), &1_000_000);
-    println!("   Borrow: {:?}", env.budget().cpu_instruction_cost());
-    env.budget().reset_unlimited();
+
     contract_client.redeem(&user, &symbol_short!("xlm"), &0);
     println!("   Redeem: {:?}", env.budget().cpu_instruction_cost());
     env.budget().reset_unlimited();
@@ -1262,22 +1324,33 @@ fn test_budget() {
     let env = Env::default();
     env.mock_all_auths();
     env.budget().reset_unlimited();
-    let contract_address = env.register_contract(None, LendingContract);
-    // mod wasm_contract {
-    //     soroban_sdk::contractimport!(file = "./target/wasm32-unknown-unknown/release/soroban_lending.wasm");
-    // }
-    // let contract_address = &env.register_contract_wasm(None, wasm_contract::WASM);
-    let contract_client = LendingContractClient::new(&env, &contract_address);
+
+    let lending_contract_address = env.register_contract(None, LendingContract);
+    let lending_contract_client = LendingContractClient::new(&env, &lending_contract_address);
+
     let admin: Address = Address::random(&env);
     let user = Address::random(&env);
     let liquidator = Address::random(&env);
 
+
+    let margin_contract_address = Address::random(&env);
+
+
+    let (vault_contract_address, vault_contract_client) = create_vault_contract(&env, &admin, &lending_contract_address, &margin_contract_address);
+
+    lending_contract_client.initialize(&admin, &liquidator, &vault_contract_address);
+
+
+    let vault_contract_obtained_from_lending: Address = lending_contract_client.get_vault_contract();
+    let lending_contract_obtained_from_vault: Address = vault_contract_client.get_lending_contract();
+
+    assert_eq!(vault_contract_obtained_from_lending, vault_contract_address);
+    assert_eq!(lending_contract_obtained_from_vault, lending_contract_address);
+
     let token_xlm = create_custom_token(&env, &admin, "XLM", "xlm", &7);
 
-    contract_client.initialize(&admin, &liquidator);
-
     env.budget().reset_unlimited();
-    contract_client.add_markets(
+    lending_contract_client.add_markets(
         &symbol_short!("xlm"),
         &token_xlm.address,
         &symbol_short!("XLM"),

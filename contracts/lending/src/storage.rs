@@ -56,6 +56,7 @@ impl DecimalExt for Decimal {
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
+    VaultContract,
     Admin,
     // Address of the Contract admin account
     Liquidator,
@@ -146,33 +147,47 @@ pub struct TokenInterestRateModelParams {
     pub optimal_utilization_ratio: u128,
 }
 
-pub fn has_admin(e: &Env) -> bool {
+pub fn has_admin(env: &Env) -> bool {
     let key = DataKey::Admin;
-    e.storage().persistent().has(&key)
+    env.storage().persistent().has(&key)
 }
 
-pub fn get_admin(e: &Env) -> Address {
+pub fn get_admin(env: &Env) -> Address {
     let key = DataKey::Admin;
-    e.storage().persistent().get(&key).unwrap()
+    env.storage().persistent().get(&key).unwrap()
 }
 
-pub fn set_admin(e: &Env, admin: &Address) {
+pub fn set_admin(env: &Env, admin: &Address) {
     let key = DataKey::Admin;
-    e.storage().persistent().set(&key, admin);
-    e.storage()
+    env.storage().persistent().set(&key, admin);
+    env.storage()
         .persistent()
         .bump(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
 }
 
-pub fn get_liquidator(e: &Env) -> Address {
-    let key = DataKey::Liquidator;
-    e.storage().persistent().get(&key).unwrap()
+pub fn set_vault_contract(env: &Env, vault_contract: &Address) {
+    let key = DataKey::VaultContract;
+    env.storage().persistent().set(&key, vault_contract);
+    env.storage()
+        .persistent()
+        .bump(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
 }
 
-pub fn set_liquidator(e: &Env, liquidator: &Address) {
+pub fn get_vault_contract(env: &Env) -> Address {
+    let key = DataKey::VaultContract;
+    env.storage().persistent().get(&key).unwrap()
+}
+
+
+pub fn get_liquidator(env: &Env) -> Address {
     let key = DataKey::Liquidator;
-    e.storage().persistent().set(&key, liquidator);
-    e.storage()
+    env.storage().persistent().get(&key).unwrap()
+}
+
+pub fn set_liquidator(env: &Env, liquidator: &Address) {
+    let key = DataKey::Liquidator;
+    env.storage().persistent().set(&key, liquidator);
+    env.storage()
         .persistent()
         .bump(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
 }
@@ -204,7 +219,7 @@ pub fn get_deposit(env: Env, user: Address, denom: Symbol) -> u128 {
 }
 
 pub fn get_available_liquidity_by_token(env: Env, denom: Symbol) -> u128 {
-    let contract_address = env.current_contract_address();
+    let contract_address = get_vault_contract(&env);
     let token_info: Map<Symbol, TokenInfo> = env
         .storage()
         .persistent()
@@ -247,11 +262,11 @@ pub fn get_interest_rate(env: Env, denom: Symbol) -> u128 {
     if utilization_rate <= optimal_utilization_ratio {
         min_interest_rate
             + utilization_rate * (safe_borrow_max_rate - min_interest_rate)
-                / optimal_utilization_ratio
+            / optimal_utilization_ratio
     } else {
         safe_borrow_max_rate
             + rate_growth_factor * (utilization_rate - optimal_utilization_ratio)
-                / (HUNDRED_PERCENT - optimal_utilization_ratio)
+            / (HUNDRED_PERCENT - optimal_utilization_ratio)
     }
 }
 
@@ -455,13 +470,13 @@ pub fn get_liquidity_rate(env: Env, denom: Symbol) -> u128 {
             expected_annual_interest_income as i128,
             INTEREST_RATE_DECIMALS,
         )
-        .mul(Decimal::from_i128_with_scale(HUNDRED as i128, 0u32))
-        .div(Decimal::from_i128_with_scale(
-            reserves_by_token as i128,
-            token_decimals,
-        ))
-        .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
-        .unwrap();
+            .mul(Decimal::from_i128_with_scale(HUNDRED as i128, 0u32))
+            .div(Decimal::from_i128_with_scale(
+                reserves_by_token as i128,
+                token_decimals,
+            ))
+            .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
+            .unwrap();
 
         liquidity_rate
     }
@@ -485,9 +500,9 @@ pub fn get_current_liquidity_index_ln(env: Env, denom: Symbol) -> u128 {
         .checked_sub(liquidity_index_last_update)
         .unwrap_or_default()) as u128
         * Decimal::from_i128_with_scale(
-            (liquidity_rate / HUNDRED + INTEREST_RATE_MULTIPLIER) as i128,
-            INTEREST_RATE_DECIMALS,
-        )
+        (liquidity_rate / HUNDRED + INTEREST_RATE_MULTIPLIER) as i128,
+        INTEREST_RATE_DECIMALS,
+    )
         .ln()
         .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
         .unwrap()
@@ -647,9 +662,9 @@ pub fn get_available_to_borrow(env: Env, user: Address, denom: Symbol) -> u128 {
             (max_allowed_borrow_amount_usd - sum_user_borrow_balance_usd) as i128,
             USD_DECIMALS,
         )
-        .div(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
-        .to_u128_with_decimals(token_decimals)
-        .unwrap();
+            .div(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
+            .to_u128_with_decimals(token_decimals)
+            .unwrap();
 
         let token_liquidity = get_available_liquidity_by_token(env.clone(), denom.clone());
 
@@ -690,9 +705,9 @@ pub fn get_available_to_redeem(env: Env, user: Address, denom: Symbol) -> u128 {
                     (sum_collateral_balance_usd - required_collateral_balance_usd) as i128,
                     USD_DECIMALS,
                 )
-                .div(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
-                .to_u128_with_decimals(token_decimals)
-                .unwrap();
+                    .div(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
+                    .to_u128_with_decimals(token_decimals)
+                    .unwrap();
 
                 if available_to_redeem > user_token_balance {
                     available_to_redeem = user_token_balance;

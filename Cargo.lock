@@ -607,6 +607,7 @@ version = "0.1.0"
 dependencies = [
  "rust_decimal",
  "soroban-sdk",
+ "vault_contract",
 ]
 
 [[package]]
