@@ -261,7 +261,7 @@ pub fn success_deposit_of_diff_token_with_prices(
         &i128::try_from(CONTRACT_RESERVES_ETH).unwrap(),
     );
 
-    contract_client.update_price(&symbol_short!("atom"), &PRICE_XLM);
+    contract_client.update_price(&symbol_short!("xlm"), &PRICE_XLM);
     contract_client.update_price(&symbol_short!("eth"), &PRICE_ETH);
 
     let get_price_xlm: u128 = contract_client.get_price(&symbol_short!("xlm"));
