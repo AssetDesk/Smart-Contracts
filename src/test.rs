@@ -1187,10 +1187,23 @@ fn test_redeem() {
     const TOKENS_DECIMALS: u32 = 18;
     const DEPOSIT_AMOUNT_ETH: u128 = 200 * 10u128.pow(TOKENS_DECIMALS);
     const DEPOSIT_AMOUNT_XLM: u128 = 300 * 10u128.pow(TOKENS_DECIMALS);
+
+    env.budget().reset_unlimited();
+    contract_client.ToggleCollateralSetting(&user, &symbol_short!("eth"));
+    println!("CPU costs");
+    println!(
+        "      ToggleCollateralSetting : {:?}",
+        env.budget().cpu_instruction_cost()
+    );
+    env.budget().reset_unlimited();
+    contract_client.ToggleCollateralSetting(&user, &symbol_short!("eth"));
+    println!(
+        "      ToggleCollateralSetting : {:?}",
+        env.budget().cpu_instruction_cost()
+    );
     env.budget().reset_unlimited();
     let available_to_redeem_eth: u128 =
         contract_client.GetAvailableToRedeem(&user, &symbol_short!("eth"));
-    println!("CPU costs");
     println!(
         "      GetAvailableToRedeem eth : {:?}",
         env.budget().cpu_instruction_cost()

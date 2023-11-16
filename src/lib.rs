@@ -927,10 +927,9 @@ impl LendingContract {
                 let user_liquidation_threshold =
                     get_user_liquidation_threshold(env.clone(), user.clone());
 
-                assert!(
-                    sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold < sum_collateral_balance_usd - user_token_balance_usd,
-                    "The collateral has already using to collateralise the borrowing. Not enough available balance"
-                );
+                if (sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold) > (sum_collateral_balance_usd - user_token_balance_usd) {
+                    panic!("In use as a collateral");
+                }
             }
         }
 
@@ -972,13 +971,6 @@ impl LendingContract {
         if amount > available_to_borrow_amount {
             panic!("The amount to be borrowed is not available");
         }
-
-        //     assert!(
-        //         get_available_liquidity_by_token(env.clone(), denom.clone())
-        //             .unwrap()
-        //             .u128()
-        //             >= amount.u128()
-        //     );
 
         execute_update_liquidity_index_data(env.clone(), denom.clone());
 
@@ -1320,10 +1312,9 @@ impl LendingContract {
         let user_liquidation_threshold: u128 =
             get_user_liquidation_threshold(env.clone(), user.clone());
 
-        assert!(
-            user_utilization_rate >= user_liquidation_threshold,
-            "User borrowing has not reached the threshold of liquidation"
-        );
+        if user_liquidation_threshold >= user_utilization_rate {
+            panic!("User borrowing has not reached the threshold of liquidation");
+        }
 
         for token in get_supported_tokens(env.clone()) {
             execute_update_liquidity_index_data(env.clone(), token.clone());
@@ -1362,10 +1353,9 @@ impl LendingContract {
                 let token_decimals = get_token_decimal(env.clone(), token.clone());
 
                 if user_borrow_amount_with_interest > 0 {
-                    assert!(
-                        liquidator_balance >= user_borrow_amount_with_interest,
-                        "The liquidator does not have enough deposit balance for liquidation"
-                    );
+                    if user_borrow_amount_with_interest >= liquidator_balance {
+                        panic!("The liquidator does not have enough deposit balance for liquidation");
+                    }
 
                     let user_borrowing_info =
                         get_user_borrowing_info(env.clone(), user.clone(), token.clone());
