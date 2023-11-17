@@ -1,3 +1,5 @@
+#![no_std]
+
 use soroban_sdk::{
     contract, contractimpl, map, symbol_short, token, Address, Env, Map, String, Symbol, Vec,
 }; // contracterror, panic_with_error, vec
