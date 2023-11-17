@@ -17,6 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Build
-        run: cd contracts && cargo build --verbose
+        run: cd contracts/lending && cargo build --verbose && cd .. && cargo build --verbose
       - name: Run tests
         run: cd contracts && cargo test --verbose
