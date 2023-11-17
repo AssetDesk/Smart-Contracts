@@ -9,11 +9,12 @@ Front-end application working with the deployed testnet smart contract is availa
 
 ## Files description
 
-| | |
-| --- | ------ |
-|[src](./src) | contains the contract files.|
-|[scripts](./scripts) | contains deployment and js interaction scripts for the testnet contract.|
-|[token](./token) | contains a standard token wasm file for testing.|
+|                                    |                                                                          |
+|------------------------------------|--------------------------------------------------------------------------|
+| [src](./contracts/lending)         | contains the lending contract files.                                     |
+| [src](./contracts/vault_contracts) | contains the vault contract files.                                       |
+| [scripts](./scripts)               | contains deployment and js interaction scripts for the testnet contract. |
+| [token](./token)                   | contains a standard token wasm file for testing.                         |
 
 ## Core functionality
 
@@ -36,3 +37,10 @@ No audits have been conducted for the protocol at this time. Results will be inc
 A set of links for various things in the community. Please submit a pull request if you would like a link included.
 
 * [AssetDesk on Stellar Discord](https://discord.com/channels/897514728459468821/1082054199187083264/threads/1167387469960990750)
+
+## Developers
+
+Build & Test contracts using command:
+
+
+<code>cd contracts && cargo build --target wasm32-unknown-unknown --release  && cargo test</code>
