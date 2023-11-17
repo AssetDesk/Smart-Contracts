@@ -3,6 +3,6 @@ soroban contract invoke^
   --source SDQFFLWT4HGC36UO3U3H7GHRFTEVKWAOWZNDJ2C4NRHH7TY2PN4QLNSN^
   --rpc-url https://rpc-futurenet.stellar.org:443/^
   --network-passphrase "Test SDF Future Network ; October 2022"^
-  -- UpdatePrice^
+  -- update_price^
   --denom xlm^
   --price 11360000

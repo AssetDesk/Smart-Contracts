@@ -1,30 +1,38 @@
-#![allow(non_camel_case_types)]
 #![allow(dead_code)]
 
-use soroban_sdk::{contracttype, Address, Symbol};
+use core::ops::{Div, Mul};
+use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::{Decimal, MathematicalOps};
 
-pub(crate) const DAY_IN_LEDGERS: u32 = 17280;
-pub(crate) const WEEK_BUMP_AMOUNT: u32 = 7 * DAY_IN_LEDGERS;
-pub(crate) const WEEK_LIFETIME_THRESHOLD: u32 = WEEK_BUMP_AMOUNT - DAY_IN_LEDGERS;
-
-pub(crate) const MONTH_BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
-pub(crate) const MONTH_LIFETIME_THRESHOLD: u32 = MONTH_BUMP_AMOUNT - DAY_IN_LEDGERS;
+use soroban_sdk::{contracttype, map, symbol_short, token, Address, Env, Map, Symbol, Vec};
 
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
-    Admin,                            // Address of the Contract admin account
-    Liquidator,                       // Address of the liquidator account
-    TotalBorrowData,                  // Map of TotalBorrowData per denom
-    SupportedTokensInfo,              // Map of TokenInfo denom data
-    SupportedTokensList,              // List of supported tokens
-    LiquidityIndexData,               // Map of LiquidityIndexData per denom
-    UserMMTokenBalance(Address),      // user mm token balance per denom
-    ReserveConfiguration,             //Map ReserveConfiguration per denom
-    TokensInterestRateModelParams,    // Map TokenInterestRateModelParams per denom
-    Prices,                           // Map price for denom
-    UserDepositAsCollateral(Address), // Map of bool per denom
-    UserBorrowingInfo(Address),       // Map UserBorrowingInfo per denom
+    VaultContract,
+    Admin,
+    // Address of the Contract admin account
+    Liquidator,
+    // Address of the liquidator account
+    TotalBorrowData,
+    // Map of TotalBorrowData per denom
+    SupportedTokensInfo,
+    // Map of TokenInfo denom data
+    SupportedTokensList,
+    // List of supported tokens
+    LiquidityIndexData,
+    // Map of LiquidityIndexData per denom
+    UserMMTokenBalance(Address),
+    // user mm token balance per denom
+    ReserveConfiguration,
+    //Map ReserveConfiguration per denom
+    TokensInterestRateModelParams,
+    // Map TokenInterestRateModelParams per denom
+    Prices,
+    // Map price for denom
+    UserDepositAsCollateral(Address),
+    // Map of bool per denom
+    UserBorrowingInfo(Address), // Map UserBorrowingInfo per denom
 }
 
 #[contracttype]

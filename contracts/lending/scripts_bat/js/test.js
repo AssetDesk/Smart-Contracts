@@ -108,7 +108,7 @@ async function tx_send(func_name, user_address, user_secret, args) {
 }
 
 async function GetPrice(token) {
-    const func_name = "GetPrice";
+    const func_name = "get_price";
     const args = [
         xdr.ScVal.scvSymbol(token),
     ];
@@ -118,7 +118,7 @@ async function GetPrice(token) {
 }
 
 async function GetUserDepositedUsd(user_address) {
-    const func_name = "GetUserDepositedUsd";
+    const func_name = "get_user_deposited_usdget_user_deposited_usd";
     const args = [
         new SorobanClient.Address(user_address).toScVal(),
     ];
@@ -128,7 +128,7 @@ async function GetUserDepositedUsd(user_address) {
 }
 
 async function GetAvailableToBorrow(user_address, token) {
-    const func_name = "GetAvailableToBorrow";
+    const func_name = "get_available_to_borrow";
     const args = [
         new SorobanClient.Address(user_address).toScVal(),
         xdr.ScVal.scvSymbol(token),
@@ -139,7 +139,7 @@ async function GetAvailableToBorrow(user_address, token) {
 }
 
 async function UpdatePrice(token, price) {
-    const func_name = "UpdatePrice";
+    const func_name = "update_price";
     const args = [
         xdr.ScVal.scvSymbol(token),
         new SorobanClient.ScInt(price).toU128(),
@@ -150,7 +150,7 @@ async function UpdatePrice(token, price) {
 }
 
 async function AddMarkets(token, token_address, decimals) {
-    const func_name = "AddMarkets";
+    const func_name = "add_marketsadd_market";
     const args = [
         xdr.ScVal.scvSymbol(token),
         new SorobanClient.Contract(token_address).address().toScVal(),
@@ -169,7 +169,7 @@ async function AddMarkets(token, token_address, decimals) {
 }
 
 async function Deposit(user_address, user_secret, token, amount) {
-    const func_name = "Deposit";
+    const func_name = "deposit";
     const args = [
         new SorobanClient.Address(user_address).toScVal(),
         xdr.ScVal.scvSymbol(token),
@@ -181,7 +181,7 @@ async function Deposit(user_address, user_secret, token, amount) {
 }
 
 async function ToggleCollateralSetting(user_address, user_secret, token) {
-    const func_name = "ToggleCollateralSetting";
+    const func_name = "toggle_collateral_setting";
     const args = [
         new SorobanClient.Address(user_address).toScVal(),
         xdr.ScVal.scvSymbol(token),
@@ -192,7 +192,7 @@ async function ToggleCollateralSetting(user_address, user_secret, token) {
 }
 
 async function Borrow(user_address, user_secret, token, amount) {
-    const func_name = "Borrow";
+    const func_name = "borrow";
     const args = [
         new SorobanClient.Address(user_address).toScVal(),
         xdr.ScVal.scvSymbol(token),
@@ -204,7 +204,7 @@ async function Borrow(user_address, user_secret, token, amount) {
 }
 
 async function GetInterestRate(token) {
-    const func_name = "GetInterestRate";
+    const func_name = "get_interest_rate";
     const args = [
         xdr.ScVal.scvSymbol(token),
     ];
@@ -252,7 +252,7 @@ export async function GetTVL() {
     return data.tx_result;
 }
 
-// ================= Main flow ================= 
+// ================= Main flow =================
 let user2 = "GBWBSCUYRLOK3OCAICZEDJBHMVUWSDNS2R6ABK6Z55R76P4UKXFIZQSZ";
 
 console.log("========== Start ==========");
@@ -276,21 +276,21 @@ console.log("      deposit usd:", admin_deposit, Number.parseFloat(10000n * admi
 console.log("       borrow atk:", admin_atk_may_borrow, Number.parseFloat(10000n * admin_atk_may_borrow / 10_000_000n) / 10000);
 
 let borrow_apy_atk = await GetInterestRate("atk");
-console.log("Borrow APY ATK:", Number.parseFloat( 1000n * borrow_apy_atk / 1_000000_000000_000000n) / 1000);
+console.log("borrow APY ATK:", Number.parseFloat( 1000n * borrow_apy_atk / 1_000000_000000_000000n) / 1000);
 let borrow_apy_xlm = await GetInterestRate("xlm");
-console.log("Borrow APY XLM:", Number.parseFloat( 1000n * borrow_apy_xlm / 1_000000_000000_000000n) / 1000);
+console.log("borrow APY XLM:", Number.parseFloat( 1000n * borrow_apy_xlm / 1_000000_000000_000000n) / 1000);
 
-// await UpdatePrice("xlm", 11_360_000n); // 0.1136 USD
-// await UpdatePrice("atk", 100_000_000n); // 1 USD
+// await update_price("xlm", 11_360_000n); // 0.1136 USD
+// await update_price("atk", 100_000_000n); // 1 USD
 
-// await AddMarkets("xlm", xlm_address, 7);
-// await Deposit(admin, admin_secret, "xlm", 1000_0000000n);
-// await AddMarkets("atk", tokenA, 7);
-// await Deposit(admin, admin_secret, "atk", 1000_0000000n);
+// await add_markets("xlm", xlm_address, 7);
+// await deposit(admin, admin_secret, "xlm", 1000_0000000n);
+// await add_markets("atk", tokenA, 7);
+// await deposit(admin, admin_secret, "atk", 1000_0000000n);
 
-// await Deposit(user1, user1_secret, "xlm", 1000_0000000n);
-// await ToggleCollateralSetting(user1, user1_secret, "xlm");
-// await Borrow(user1, user1_secret, "atk", 50n * 10_000_000n); // 50 atk = 50 usd
+// await deposit(user1, user1_secret, "xlm", 1000_0000000n);
+// await toggle_collateral_setting(user1, user1_secret, "xlm");
+// await borrow(user1, user1_secret, "atk", 50n * 10_000_000n); // 50 atk = 50 usd
 
 let user1_xlm = await token_balance(xlm_address, user1);
 let user1_atk = await token_balance(tokenA, user1);
