@@ -1,7 +1,5 @@
 #![no_std]
 
-use crate::storage::*;
-use core::ptr::addr_of;
 use soroban_sdk::{contract, contractimpl, Address, Env};
 
 use crate::utilities::*;
