@@ -2,7 +2,7 @@
 
 extern crate std;
 
-use super::{LendingContract, LendingContractClient};
+use crate::contract::{LendingContract, LendingContractClient};
 use crate::storage::*;
 use std::println;
 
@@ -17,10 +17,10 @@ mod token_contract {
 }
 
 mod vault_contract {
-    soroban_sdk::contractimport!(file = "../../target/wasm32-unknown-unknown/release/vault_contract.wasm"
-);
+    soroban_sdk::contractimport!(
+        file = "../../target/wasm32-unknown-unknown/release/vault_contract.wasm"
+    );
 }
-
 
 fn create_custom_token<'a>(
     env: &Env,
@@ -48,12 +48,9 @@ fn create_vault_contract<'a>(
 ) -> (Address, vault_contract::Client<'a>) {
     let vault_contract_address = &env.register_contract_wasm(None, vault_contract::WASM);
     let vault_contract_client = vault_contract::Client::new(env, &vault_contract_address);
-    vault_contract_client.initialize(
-        lending_contract_address, margin_contract_address, admin,
-    );
+    vault_contract_client.initialize(lending_contract_address, margin_contract_address, admin);
     (vault_contract_address.clone(), vault_contract_client)
 }
-
 
 pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, Address, Address) {
     const TOKENS_DECIMALS: u32 = 18;
@@ -90,16 +87,25 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
 
     let margin_contract_address = Address::random(&env);
 
-    let (vault_contract_address, vault_contract_client) = create_vault_contract(&env, &admin, &lending_contract_address, &margin_contract_address);
+    let (vault_contract_address, vault_contract_client) = create_vault_contract(
+        &env,
+        &admin,
+        &lending_contract_address,
+        &margin_contract_address,
+    );
 
     lending_contract_client.initialize(&admin, &liquidator, &vault_contract_address);
 
-
-    let vault_contract_obtained_from_lending: Address = lending_contract_client.get_vault_contract();
-    let lending_contract_obtained_from_vault: Address = vault_contract_client.get_lending_contract();
+    let vault_contract_obtained_from_lending: Address =
+        lending_contract_client.get_vault_contract();
+    let lending_contract_obtained_from_vault: Address =
+        vault_contract_client.get_lending_contract();
 
     assert_eq!(vault_contract_obtained_from_lending, vault_contract_address);
-    assert_eq!(lending_contract_obtained_from_vault, lending_contract_address);
+    assert_eq!(
+        lending_contract_obtained_from_vault,
+        lending_contract_address
+    );
 
     let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
@@ -152,7 +158,6 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
     // contract_client.update_price(&symbol_short!("xlm"), &PRICE_XLM);
     // contract_client.update_price(&symbol_short!("eth"), &PRICE_ETH);
 
-
     lending_contract_client.deposit(&user1, &symbol_short!("eth"), &FIRST_DEPOSIT_AMOUNT_ETH);
     // contract_client.deposit(&admin, &symbol_short!("eth"), &(FIRST_DEPOSIT_AMOUNT_ETH * 15 / 10));
 
@@ -169,7 +174,7 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
     );
     assert_eq!(
         token_eth.balance(&vault_contract_address),
-         FIRST_DEPOSIT_AMOUNT_ETH as i128
+        FIRST_DEPOSIT_AMOUNT_ETH as i128
     );
 
     lending_contract_client.deposit(&user1, &symbol_short!("eth"), &SECOND_DEPOSIT_AMOUNT_ETH);
@@ -193,7 +198,8 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
     (lending_contract_client, admin, user1)
 }
 
-pub fn success_deposit_of_diff_token_with_prices() -> (Env, LendingContractClient<'static>, Address, Address) {
+pub fn success_deposit_of_diff_token_with_prices(
+) -> (Env, LendingContractClient<'static>, Address, Address) {
     const TOKENS_DECIMALS: u32 = 18;
 
     const INIT_BALANCE_ETH: u128 = 1000 * 10u128.pow(TOKENS_DECIMALS);
@@ -236,17 +242,25 @@ pub fn success_deposit_of_diff_token_with_prices() -> (Env, LendingContractClien
     let liquidator = Address::random(&env);
     let margin_contract_address = Address::random(&env);
 
-
-    let (vault_contract_address, vault_contract_client) = create_vault_contract(&env, &admin, &lending_contract_address, &margin_contract_address);
+    let (vault_contract_address, vault_contract_client) = create_vault_contract(
+        &env,
+        &admin,
+        &lending_contract_address,
+        &margin_contract_address,
+    );
 
     lending_contract_client.initialize(&admin, &liquidator, &vault_contract_address);
 
-
-    let vault_contract_obtained_from_lending: Address = lending_contract_client.get_vault_contract();
-    let lending_contract_obtained_from_vault: Address = vault_contract_client.get_lending_contract();
+    let vault_contract_obtained_from_lending: Address =
+        lending_contract_client.get_vault_contract();
+    let lending_contract_obtained_from_vault: Address =
+        vault_contract_client.get_lending_contract();
 
     assert_eq!(vault_contract_obtained_from_lending, vault_contract_address);
-    assert_eq!(lending_contract_obtained_from_vault, lending_contract_address);
+    assert_eq!(
+        lending_contract_obtained_from_vault,
+        lending_contract_address
+    );
 
     let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
@@ -345,7 +359,8 @@ pub fn success_deposit_of_diff_token_with_prices() -> (Env, LendingContractClien
     (env, lending_contract_client, admin, user1)
 }
 
-pub fn success_deposit_as_collateral_of_diff_token_with_prices() -> (Env, LendingContractClient<'static>, Address, Address) {
+pub fn success_deposit_as_collateral_of_diff_token_with_prices(
+) -> (Env, LendingContractClient<'static>, Address, Address) {
     let (env, contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
 
     contract_client.toggle_collateral_setting(&user, &symbol_short!("eth"));
@@ -412,16 +427,25 @@ pub fn success_borrow_setup() -> (
 
     let margin_contract_address = Address::random(&env);
 
-    let (vault_contract_address, vault_contract_client) = create_vault_contract(&env, &admin, &lending_contract_address, &margin_contract_address);
+    let (vault_contract_address, vault_contract_client) = create_vault_contract(
+        &env,
+        &admin,
+        &lending_contract_address,
+        &margin_contract_address,
+    );
 
     lending_contract_client.initialize(&admin, &liquidator, &vault_contract_address);
 
-
-    let vault_contract_obtained_from_lending: Address = lending_contract_client.get_vault_contract();
-    let lending_contract_obtained_from_vault: Address = vault_contract_client.get_lending_contract();
+    let vault_contract_obtained_from_lending: Address =
+        lending_contract_client.get_vault_contract();
+    let lending_contract_obtained_from_vault: Address =
+        vault_contract_client.get_lending_contract();
 
     assert_eq!(vault_contract_obtained_from_lending, vault_contract_address);
-    assert_eq!(lending_contract_obtained_from_vault, lending_contract_address);
+    assert_eq!(
+        lending_contract_obtained_from_vault,
+        lending_contract_address
+    );
     let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
     let token_usdt = create_custom_token(&env, &admin, "USDT", "usdt", &TOKENS_DECIMALS);
@@ -513,7 +537,8 @@ pub fn success_borrow_setup() -> (
     let _available_to_redeem: u128 =
         lending_contract_client.get_available_to_redeem(&user1, &symbol_short!("eth"));
 
-    let user_deposited_balance: u128 = lending_contract_client.get_deposit(&user1, &symbol_short!("eth"));
+    let user_deposited_balance: u128 =
+        lending_contract_client.get_deposit(&user1, &symbol_short!("eth"));
 
     assert_eq!(user_deposited_balance, DEPOSIT_AMOUNT_ETH);
 
@@ -531,16 +556,17 @@ pub fn success_borrow_setup() -> (
 
     env.ledger().set(LedgerInfo {
         timestamp: 2000,
-        protocol_version: current_info.protocol_version,
-        sequence_number: current_info.sequence_number,
-        network_id: current_info.network_id,
-        base_reserve: current_info.base_reserve,
-        min_temp_entry_expiration: current_info.min_temp_entry_expiration,
-        min_persistent_entry_expiration: current_info.min_persistent_entry_expiration,
-        max_entry_expiration: current_info.max_entry_expiration,
+        protocol_version: current_info.protocol_version.clone(),
+        sequence_number: current_info.sequence_number.clone(),
+        network_id: current_info.network_id.clone(),
+        base_reserve: current_info.base_reserve.clone(),
+        min_temp_entry_expiration: current_info.min_temp_entry_expiration.clone(),
+        min_persistent_entry_expiration: current_info.min_persistent_entry_expiration.clone(),
+        max_entry_expiration: current_info.max_entry_expiration.clone(),
     });
 
-    let user_deposited_balance: u128 = lending_contract_client.get_deposit(&user1, &symbol_short!("xlm"));
+    let user_deposited_balance: u128 =
+        lending_contract_client.get_deposit(&user1, &symbol_short!("xlm"));
 
     assert_eq!(user_deposited_balance, DEPOSIT_AMOUNT_XLM);
 
@@ -556,13 +582,13 @@ pub fn success_borrow_setup() -> (
 
     env.ledger().set(LedgerInfo {
         timestamp: 10000,
-        protocol_version: current_info.protocol_version,
-        sequence_number: current_info.sequence_number,
-        network_id: current_info.network_id,
-        base_reserve: current_info.base_reserve,
-        min_temp_entry_expiration: current_info.min_temp_entry_expiration,
-        min_persistent_entry_expiration: current_info.min_persistent_entry_expiration,
-        max_entry_expiration: current_info.max_entry_expiration,
+        protocol_version: current_info.protocol_version.clone(),
+        sequence_number: current_info.sequence_number.clone(),
+        network_id: current_info.network_id.clone(),
+        base_reserve: current_info.base_reserve.clone(),
+        min_temp_entry_expiration: current_info.min_temp_entry_expiration.clone(),
+        min_persistent_entry_expiration: current_info.min_persistent_entry_expiration.clone(),
+        max_entry_expiration: current_info.max_entry_expiration.clone(),
     });
 
     lending_contract_client.borrow(&user1, &symbol_short!("eth"), &BORROW_AMOUNT_ETH);
@@ -619,16 +645,25 @@ fn test_successful_deposits_of_one_token() {
 
     let margin_contract_address = Address::random(&env);
 
-    let (vault_contract_address, vault_contract_client) = create_vault_contract(&env, &admin, &lending_contract_address, &margin_contract_address);
+    let (vault_contract_address, vault_contract_client) = create_vault_contract(
+        &env,
+        &admin,
+        &lending_contract_address,
+        &margin_contract_address,
+    );
 
     lending_contract_client.initialize(&admin, &liquidator, &vault_contract_address);
 
-
-    let vault_contract_obtained_from_lending: Address = lending_contract_client.get_vault_contract();
-    let lending_contract_obtained_from_vault: Address = vault_contract_client.get_lending_contract();
+    let vault_contract_obtained_from_lending: Address =
+        lending_contract_client.get_vault_contract();
+    let lending_contract_obtained_from_vault: Address =
+        vault_contract_client.get_lending_contract();
 
     assert_eq!(vault_contract_obtained_from_lending, vault_contract_address);
-    assert_eq!(lending_contract_obtained_from_vault, lending_contract_address);
+    assert_eq!(
+        lending_contract_obtained_from_vault,
+        lending_contract_address
+    );
 
     let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
@@ -970,7 +1005,7 @@ fn test_success_repay_more_than_needed() {
 
     // paying only what we supposed to, not twice as much
     assert_eq!(
-        underlying_balance_after_repay - amount_to_repay_with_interest as i128,
+        underlying_balance_after_repay - amount_to_repay_with_interest.clone() as i128,
         underlying_balance_before_repay
     );
 
@@ -1332,20 +1367,27 @@ fn test_budget() {
     let user = Address::random(&env);
     let liquidator = Address::random(&env);
 
-
     let margin_contract_address = Address::random(&env);
 
-
-    let (vault_contract_address, vault_contract_client) = create_vault_contract(&env, &admin, &lending_contract_address, &margin_contract_address);
+    let (vault_contract_address, vault_contract_client) = create_vault_contract(
+        &env,
+        &admin,
+        &lending_contract_address,
+        &margin_contract_address,
+    );
 
     lending_contract_client.initialize(&admin, &liquidator, &vault_contract_address);
 
-
-    let vault_contract_obtained_from_lending: Address = lending_contract_client.get_vault_contract();
-    let lending_contract_obtained_from_vault: Address = vault_contract_client.get_lending_contract();
+    let vault_contract_obtained_from_lending: Address =
+        lending_contract_client.get_vault_contract();
+    let lending_contract_obtained_from_vault: Address =
+        vault_contract_client.get_lending_contract();
 
     assert_eq!(vault_contract_obtained_from_lending, vault_contract_address);
-    assert_eq!(lending_contract_obtained_from_vault, lending_contract_address);
+    assert_eq!(
+        lending_contract_obtained_from_vault,
+        lending_contract_address
+    );
 
     let token_xlm = create_custom_token(&env, &admin, "XLM", "xlm", &7);
 
@@ -1375,7 +1417,7 @@ fn test_tvl() {
     // contract reserves: 1000 ETH + 1000 XLM
     // user deposited 200 ETH and 300 XLM
     // 1200 * 2000 + 1300 * 10 = 2413000
-    let (env, contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
+    let (_env, contract_client, _admin, _user) = success_deposit_of_diff_token_with_prices();
 
     assert_eq!(contract_client.get_tvl(), 2_413_000 * 10u128.pow(8)); // 2_313_000 USD
 }
