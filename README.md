@@ -9,12 +9,12 @@ Front-end application working with the deployed testnet smart contract is availa
 
 ## Files description
 
-|                                   |                                                                          |
-|-----------------------------------|--------------------------------------------------------------------------|
-| [lending](./contracts/lending)        | contains the lending contract files.                                     |
+|                                              |                                                                          |
+|----------------------------------------------|--------------------------------------------------------------------------|
+| [lending](./contracts/lending)               | contains the lending contract files.                                     |
 | [vault_contract](./contracts/vault_contract) | contains the vault contract files.                                       |
-| [scripts](./scripts)              | contains deployment and js interaction scripts for the testnet contract. |
-| [token](./token)                  | contains a standard token wasm file for testing.                         |
+| [scripts](./contracts/lending/scripts_bat)   | contains deployment and js interaction scripts for the testnet contract. |
+| [token](./token)                             | contains a standard token wasm file for testing.                         |
 
 ## Core functionality
 
