@@ -20,6 +20,6 @@ jobs:
           toolchain: stable
           target: wasm32-unknown-unknown
       - name: Build
-        run:  ./build.sh
+        run:  sudo ./build.sh
       - name: Run tests
-        run: ./test.sh
+        run: sudo ./test.sh
