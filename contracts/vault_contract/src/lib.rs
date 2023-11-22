@@ -64,26 +64,26 @@ impl VaultContract {
         )
     }
 
-    // // redeem_from_vault_contract_margin - for margin positions contract
-    // pub fn redeem_from_vault_contract_m(
-    //     env: Env,
-    //     user_address: Address,
-    //     token_address: Address,
-    //     amount: u128,
-    // ) {
-    //     // Admin only
-    //     let margin_positions_contract: Address = get_margin_contract(&env);
-    //     margin_positions_contract.require_auth();
-    //
-    //     move_token(
-    //         &env,
-    //         &token_address,
-    //         &env.current_contract_address(),
-    //         &user_address,
-    //         amount as i128,
-    //     )
-    // }
-    //
+    // redeem_from_vault_contract_margin - for margin positions contract
+    pub fn redeem_from_vault_contract_m(
+        env: Env,
+        user_address: Address,
+        token_address: Address,
+        amount: u128,
+    ) {
+        // Admin only
+        let margin_positions_contract: Address = get_margin_contract(&env);
+        margin_positions_contract.require_auth();
+
+        move_token(
+            &env,
+            &token_address,
+            &env.current_contract_address(),
+            &user_address,
+            amount as i128,
+        )
+    }
+
     pub fn borrow_from_vault_contract(
         env: Env,
         user_address: Address,
@@ -103,7 +103,6 @@ impl VaultContract {
         )
     }
 }
-
 
 mod storage;
 mod utilities;
