@@ -16,6 +16,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
       - name: Build
         run: cd contracts/vault_contract && cargo build --target wasm32-unknown-unknown --release && cd .. && cargo build --verbose
       - name: Run tests
