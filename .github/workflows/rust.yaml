@@ -20,6 +20,6 @@ jobs:
           toolchain: stable
           target: wasm32-unknown-unknown
       - name: Build
-        run: cd contracts/vault_contract && cargo build --target wasm32-unknown-unknown --release && cd .. && cargo build --verbose
+        run:  ./build.sh
       - name: Run tests
-        run: cd contracts && cargo test --verbose
+        run: ./test.sh
