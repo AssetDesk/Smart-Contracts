@@ -62,9 +62,9 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
     env.budget().reset_unlimited();
     let contract_address = env.register_contract(None, LendingContract);
     let contract_client = LendingContractClient::new(&env, &contract_address);
-    let admin = Address::random(&env);
-    let user1 = Address::random(&env);
-    let liquidator = Address::random(&env);
+    let admin = Address::generate(&env);
+    let user1 = Address::generate(&env);
+    let liquidator = Address::generate(&env);
 
     contract_client.initialize(&admin, &liquidator);
 
@@ -198,9 +198,9 @@ pub fn success_deposit_of_diff_token_with_prices(
     env.budget().reset_unlimited();
     let contract_address = env.register_contract(None, LendingContract);
     let contract_client = LendingContractClient::new(&env, &contract_address);
-    let admin = Address::random(&env);
-    let user1 = Address::random(&env);
-    let liquidator = Address::random(&env);
+    let admin = Address::generate(&env);
+    let user1 = Address::generate(&env);
+    let liquidator = Address::generate(&env);
 
     contract_client.initialize(&admin, &liquidator);
 
@@ -363,9 +363,9 @@ pub fn success_borrow_setup() -> (
     env.budget().reset_unlimited();
     let contract_address = env.register_contract(None, LendingContract);
     let contract_client = LendingContractClient::new(&env, &contract_address);
-    let admin = Address::random(&env);
-    let user1 = Address::random(&env);
-    let liquidator = Address::random(&env);
+    let admin = Address::generate(&env);
+    let user1 = Address::generate(&env);
+    let liquidator = Address::generate(&env);
 
     contract_client.initialize(&admin, &liquidator);
 
@@ -444,18 +444,9 @@ pub fn success_borrow_setup() -> (
 
     contract_client.Deposit(&user1, &symbol_short!("eth"), &DEPOSIT_AMOUNT_ETH);
 
-    let current_info: LedgerInfo = env.ledger().get();
-
-    env.ledger().set(LedgerInfo {
-        timestamp: 1000,
-        protocol_version: current_info.protocol_version,
-        sequence_number: current_info.sequence_number,
-        network_id: current_info.network_id,
-        base_reserve: current_info.base_reserve,
-        min_temp_entry_expiration: current_info.min_temp_entry_expiration,
-        min_persistent_entry_expiration: current_info.min_persistent_entry_expiration,
-        max_entry_expiration: current_info.max_entry_expiration,
-    });
+    let mut current_info: LedgerInfo = env.ledger().get();
+    current_info.timestamp = 1000;
+    env.ledger().set(current_info);
 
     let _available_to_redeem: u128 =
         contract_client.GetAvailableToRedeem(&user1, &symbol_short!("eth"));
@@ -476,16 +467,9 @@ pub fn success_borrow_setup() -> (
 
     contract_client.Deposit(&user1, &symbol_short!("xlm"), &DEPOSIT_AMOUNT_XLM);
 
-    env.ledger().set(LedgerInfo {
-        timestamp: 2000,
-        protocol_version: current_info.protocol_version,
-        sequence_number: current_info.sequence_number,
-        network_id: current_info.network_id,
-        base_reserve: current_info.base_reserve,
-        min_temp_entry_expiration: current_info.min_temp_entry_expiration,
-        min_persistent_entry_expiration: current_info.min_persistent_entry_expiration,
-        max_entry_expiration: current_info.max_entry_expiration,
-    });
+    let mut current_info = env.ledger().get();
+    current_info.timestamp = 2000;
+    env.ledger().set(current_info);
 
     let user_deposited_balance: u128 = contract_client.GetDeposit(&user1, &symbol_short!("xlm"));
 
@@ -500,17 +484,9 @@ pub fn success_borrow_setup() -> (
         token_xlm.balance(&contract_address) as u128,
         CONTRACT_RESERVES_XLM + DEPOSIT_AMOUNT_XLM
     );
-
-    env.ledger().set(LedgerInfo {
-        timestamp: 10000,
-        protocol_version: current_info.protocol_version,
-        sequence_number: current_info.sequence_number,
-        network_id: current_info.network_id,
-        base_reserve: current_info.base_reserve,
-        min_temp_entry_expiration: current_info.min_temp_entry_expiration,
-        min_persistent_entry_expiration: current_info.min_persistent_entry_expiration,
-        max_entry_expiration: current_info.max_entry_expiration,
-    });
+    let mut current_info = env.ledger().get();
+    current_info.timestamp = 10000;
+    env.ledger().set(current_info);
 
     contract_client.Borrow(&user1, &symbol_short!("eth"), &BORROW_AMOUNT_ETH);
 
@@ -560,9 +536,9 @@ fn test_successful_deposits_of_one_token() {
     env.budget().reset_unlimited();
     let contract_address = env.register_contract(None, LendingContract);
     let contract_client = LendingContractClient::new(&env, &contract_address);
-    let admin = Address::random(&env);
-    let user1 = Address::random(&env);
-    let liquidator = Address::random(&env);
+    let admin = Address::generate(&env);
+    let user1 = Address::generate(&env);
+    let liquidator = Address::generate(&env);
 
     contract_client.initialize(&admin, &liquidator);
 
@@ -638,20 +614,11 @@ fn test_successful_deposits_of_one_token() {
     contract_client.Deposit(&user1, &symbol_short!("eth"), &SECOND_DEPOSIT_AMOUNT);
     contract_client.Borrow(&admin, &symbol_short!("eth"), &(SECOND_DEPOSIT_AMOUNT / 2));
 
-    let current_info: LedgerInfo = env.ledger().get();
+    let mut current_info: LedgerInfo = env.ledger().get();
 
     println!("Current ledger info: {:?}", current_info);
-
-    env.ledger().set(LedgerInfo {
-        timestamp: 31536000,
-        protocol_version: current_info.protocol_version,
-        sequence_number: current_info.sequence_number,
-        network_id: current_info.network_id,
-        base_reserve: current_info.base_reserve,
-        min_temp_entry_expiration: current_info.min_temp_entry_expiration,
-        min_persistent_entry_expiration: current_info.min_persistent_entry_expiration,
-        max_entry_expiration: current_info.max_entry_expiration,
-    });
+    current_info.timestamp = 31536000;
+    env.ledger().set(current_info);
 
     println!("New timestamp: {:?}", env.ledger().timestamp());
 
@@ -755,18 +722,9 @@ fn test_get_user_borrow_amount_with_interest() {
     assert_eq!(user_borrow_amount_with_interest_eth, 50000000000000000000); // 50 ETH
     assert_eq!(user_borrow_amount_with_interest_xlm, 200000000000000000000); // 200 XLM
 
-    let current_info: LedgerInfo = env.ledger().get();
-
-    env.ledger().set(LedgerInfo {
-        timestamp: YEAR_IN_SECONDS,
-        protocol_version: current_info.protocol_version,
-        sequence_number: current_info.sequence_number,
-        network_id: current_info.network_id,
-        base_reserve: current_info.base_reserve,
-        min_temp_entry_expiration: current_info.min_temp_entry_expiration,
-        min_persistent_entry_expiration: current_info.min_persistent_entry_expiration,
-        max_entry_expiration: current_info.max_entry_expiration,
-    });
+    let mut current_info: LedgerInfo = env.ledger().get();
+    current_info.timestamp = YEAR_IN_SECONDS;
+    env.ledger().set(current_info);
 
     user_borrow_amount_with_interest_eth =
         contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
@@ -826,18 +784,9 @@ fn test_success_borrow_one_token() {
 
     contract_client.Borrow(&user, &symbol_short!("xlm"), &BORROW_SECOND_TOKEN);
 
-    let current_info: LedgerInfo = env.ledger().get();
-
-    env.ledger().set(LedgerInfo {
-        timestamp: 31536000,
-        protocol_version: current_info.protocol_version,
-        sequence_number: current_info.sequence_number,
-        network_id: current_info.network_id,
-        base_reserve: current_info.base_reserve,
-        min_temp_entry_expiration: current_info.min_temp_entry_expiration,
-        min_persistent_entry_expiration: current_info.min_persistent_entry_expiration,
-        max_entry_expiration: current_info.max_entry_expiration,
-    });
+    let mut current_info: LedgerInfo = env.ledger().get();
+    current_info.timestamp = 31536000;
+    env.ledger().set(current_info);
 
     let user_borrowed_balance: u128 =
         contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("xlm"));
@@ -852,18 +801,9 @@ fn test_success_repay_whole_amount() {
     let (env, contract_client, admin, user, liquidator, token_xlm, token_eth) =
         success_borrow_setup();
 
-    let current_info: LedgerInfo = env.ledger().get();
-
-    env.ledger().set(LedgerInfo {
-        timestamp: 3153600 + 10000,
-        protocol_version: current_info.protocol_version,
-        sequence_number: current_info.sequence_number,
-        network_id: current_info.network_id,
-        base_reserve: current_info.base_reserve,
-        min_temp_entry_expiration: current_info.min_temp_entry_expiration,
-        min_persistent_entry_expiration: current_info.min_persistent_entry_expiration,
-        max_entry_expiration: current_info.max_entry_expiration,
-    });
+    let mut current_info: LedgerInfo = env.ledger().get();
+    current_info.timestamp = 3153600 + 10000;
+    env.ledger().set(current_info);
 
     let user_borrow_amount_with_interest: u128 =
         contract_client.GetUserBorrowAmountWithInterest(&user, &symbol_short!("eth"));
@@ -1169,20 +1109,112 @@ fn test_redeem() {
     let (env, contract_client, admin, user) =
         success_deposit_as_collateral_of_diff_token_with_prices();
 
-    // let token_btk = create_custom_token(&env, &admin, "BTK", "btk", &7);
+    let token_usdc = create_custom_token(&env, &admin, "USDC", "usdc", &7);
+    let token_usdt = create_custom_token(&env, &admin, "USDT", "usdt", &7);
 
-    // contract_client.AddMarkets(
-    //     &symbol_short!("btk"),
-    //     &token_btk.address,
-    //     &symbol_short!("BTK"),
-    //     &7,
-    //     &(75 * 10u128.pow(5)),
-    //     &(80 * 10u128.pow(5)),
-    //     &(5 * 10u128.pow(18)),
-    //     &(30 * 10u128.pow(18)),
-    //     &(70 * 10u128.pow(18)),
-    //     &(80 * 10u128.pow(5)),
-    // );
+    token_usdc.mint(&admin, &100_000_0000000_i128);
+    token_usdt.mint(&admin, &100_000_0000000_i128);
+
+    env.budget().reset_unlimited();
+
+    contract_client.AddMarkets(
+        &symbol_short!("usdc"),
+        &token_usdc.address,
+        &symbol_short!("USDC"),
+        &7,
+        &(75 * 10u128.pow(5)),
+        &(80 * 10u128.pow(5)),
+        &(5 * 10u128.pow(18)),
+        &(30 * 10u128.pow(18)),
+        &(70 * 10u128.pow(18)),
+        &(80 * 10u128.pow(5)),
+    );
+
+    contract_client.Deposit(&admin, &symbol_short!("usdc"), &10_000_0000000);
+
+    contract_client.AddMarkets(
+        &symbol_short!("usdt"),
+        &token_usdt.address,
+        &symbol_short!("USDT"),
+        &7,
+        &(75 * 10u128.pow(5)),
+        &(80 * 10u128.pow(5)),
+        &(5 * 10u128.pow(18)),
+        &(30 * 10u128.pow(18)),
+        &(70 * 10u128.pow(18)),
+        &(80 * 10u128.pow(5)),
+    );
+
+    contract_client.Deposit(&admin, &symbol_short!("usdt"), &10_000_0000000);
+
+    contract_client.AddMarkets(
+        &symbol_short!("dai"),
+        &token_usdt.address,
+        &symbol_short!("DAI"),
+        &7,
+        &(75 * 10u128.pow(5)),
+        &(80 * 10u128.pow(5)),
+        &(5 * 10u128.pow(18)),
+        &(30 * 10u128.pow(18)),
+        &(70 * 10u128.pow(18)),
+        &(80 * 10u128.pow(5)),
+    );
+
+    contract_client.Deposit(&admin, &symbol_short!("dai"), &10_000_0000000);
+
+    contract_client.UpdatePrice(&symbol_short!("usdc"), &100_000_000);
+    contract_client.UpdatePrice(&symbol_short!("usdt"), &100_000_000);
+    contract_client.UpdatePrice(&symbol_short!("dai"), &100_000_000);
+
+    token_usdc.mint(&user, &1000_0000000_i128);
+    contract_client.Deposit(&user, &symbol_short!("usdc"), &1000_0000000);
+    contract_client.ToggleCollateralSetting(&user, &symbol_short!("usdc"));
+    env.budget().reset_unlimited();
+    contract_client.Borrow(&user, &symbol_short!("xlm"), &100_000);
+    println!("   Borrow 1: {:?}", env.budget().cpu_instruction_cost());
+    // println!("{:?}", env.budget());
+    env.budget().reset_unlimited();
+    contract_client.Borrow(&user, &symbol_short!("eth"), &1_000);
+    println!("   Borrow 1: {:?}", env.budget().cpu_instruction_cost());
+
+    // println!("   Borrow test: {:?}", contract_client.borrow_test(&user, &symbol_short!("eth"), &1_000));
+
+
+    let user1 = Address::generate(&env);
+    token_usdc.mint(&user1, &1000_0000000_i128);
+    contract_client.Deposit(&user1, &symbol_short!("usdc"), &1000_0000000);
+    contract_client.ToggleCollateralSetting(&user1, &symbol_short!("usdc"));
+    env.budget().reset_unlimited();
+    contract_client.Borrow(&user1, &symbol_short!("xlm"), &100_000);
+    println!("   Borrow 2: {:?}", env.budget().cpu_instruction_cost());
+    // println!("{:?}", env.budget());
+    env.budget().reset_unlimited();
+    contract_client.Borrow(&user1, &symbol_short!("eth"), &1_000);
+    println!("   Borrow 2: {:?}", env.budget().cpu_instruction_cost());
+
+    let user2 = Address::generate(&env);
+    token_usdt.mint(&user2, &1000_0000000_i128);
+    contract_client.Deposit(&user2, &symbol_short!("usdt"), &1000_0000000);
+    contract_client.ToggleCollateralSetting(&user2, &symbol_short!("usdt"));
+    env.budget().reset_unlimited();
+    contract_client.Borrow(&user2, &symbol_short!("xlm"), &100_000);
+    println!("   Borrow 3: {:?}", env.budget().cpu_instruction_cost());
+    // println!("{:?}", env.budget());
+    env.budget().reset_unlimited();
+    contract_client.Borrow(&user2, &symbol_short!("eth"), &1_000);
+    println!("   Borrow 3: {:?}", env.budget().cpu_instruction_cost());
+
+    let user3 = Address::generate(&env);
+    token_usdc.mint(&user3, &1000_0000000_i128);
+    contract_client.Deposit(&user3, &symbol_short!("usdc"), &1000_0000000);
+    contract_client.ToggleCollateralSetting(&user3, &symbol_short!("usdc"));
+    env.budget().reset_unlimited();
+    contract_client.Borrow(&user3, &symbol_short!("xlm"), &100_000);
+    println!("   Borrow 4: {:?}", env.budget().cpu_instruction_cost());
+    // println!("{:?}", env.budget());
+    env.budget().reset_unlimited();
+    contract_client.Borrow(&user3, &symbol_short!("eth"), &1_000);
+    println!("   Borrow 4: {:?}", env.budget().cpu_instruction_cost());
 
     const TOKENS_DECIMALS: u32 = 18;
     const DEPOSIT_AMOUNT_ETH: u128 = 200 * 10u128.pow(TOKENS_DECIMALS);
@@ -1199,6 +1231,13 @@ fn test_redeem() {
     contract_client.ToggleCollateralSetting(&user, &symbol_short!("eth"));
     println!(
         "      ToggleCollateralSetting : {:?}",
+        env.budget().cpu_instruction_cost()
+    );
+    env.budget().reset_unlimited();
+    let UserMaxAllowedBorrowAmountUsd: u128 =
+        contract_client.GetUserMaxAllowedBorrowAmountUsd(&user);
+    println!(
+        "      GetUserMaxAllowedBorrowAmountUsd : {:?}",
         env.budget().cpu_instruction_cost()
     );
     env.budget().reset_unlimited();
@@ -1277,9 +1316,9 @@ fn test_budget() {
     // }
     // let contract_address = &env.register_contract_wasm(None, wasm_contract::WASM);
     let contract_client = LendingContractClient::new(&env, &contract_address);
-    let admin: Address = Address::random(&env);
-    let user = Address::random(&env);
-    let liquidator = Address::random(&env);
+    let admin: Address = Address::generate(&env);
+    let user = Address::generate(&env);
+    let liquidator = Address::generate(&env);
 
     let token_xlm = create_custom_token(&env, &admin, "XLM", "xlm", &7);
 

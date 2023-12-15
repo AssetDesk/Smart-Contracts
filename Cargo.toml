@@ -11,11 +11,11 @@ crate-type = ["cdylib"]
 testutils = ["soroban-sdk/testutils"]
 
 [dependencies]
-soroban-sdk = {  version = "20.0.0-rc2" }
+soroban-sdk = {  version = "20.0.0" }
 rust_decimal = { git = "https://github.com/AssetDesk/rust-decimal.git", default-features = false, features = ["maths"]  }
 
 [dev_dependencies]
-soroban-sdk = { version = "20.0.0-rc2", features = ["testutils"] }
+soroban-sdk = { version = "20.0.0", features = ["testutils"] }
 rust_decimal = { git = "https://github.com/AssetDesk/rust-decimal.git", default-features = false, features = ["maths"]  }
 
 [profile.release]

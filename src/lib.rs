@@ -7,7 +7,7 @@ use crate::types::{
 };
 
 use soroban_sdk::{
-    contract, contractimpl, map, symbol_short, token, Address, Env, Map, Symbol, Vec,
+    contract, contractimpl, map, symbol_short, Address, Env, Map, Symbol, Vec,
 }; // contracterror, panic_with_error, vec
 
 use core::ops::{Add, Div, Mul};
@@ -25,27 +25,15 @@ const YEAR_IN_SECONDS: u128 = 31536000; // 365 days
 
 const USD_DECIMALS: u32 = 8;
 
+mod token_contract {
+    soroban_sdk::contractimport!(
+        file = "./token/soroban_token_contract.optimized.wasm"
+    );
+}
+
 pub trait DecimalExt {
     fn to_u128_with_decimals(&self, decimals: u32) -> Result<u128, rust_decimal::Error>;
 }
-
-// impl DecimalExt for Decimal {
-//     // converting high-precise numbers into u128
-//     fn to_u128_with_decimals(&self, decimals: u32) -> Result<u128, rust_decimal::Error> {
-//         let s = self.to_string();
-//         let (left, right) = s.split_once(".").unwrap_or((&s, ""));
-//         let mut right = right.to_string();
-//         let right_len = right.len() as u32;
-//         if right_len > decimals {
-//             right.truncate(decimals.try_into().unwrap());
-//         } else if right_len < decimals {
-//             let zeroes = decimals - right_len;
-//             right.push_str(&"0".repeat(zeroes.try_into().unwrap()));
-//         }
-//         let s = format!("{}{}", left, right);
-//         Ok(s.parse::<u128>().unwrap_or(0))
-//     }
-// }
 
 impl DecimalExt for Decimal {
     // converting high-precise numbers into u128
@@ -70,7 +58,7 @@ fn write_administrator(e: &Env, admin: &Address) {
     e.storage().persistent().set(&key, admin);
     e.storage()
         .persistent()
-        .bump(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
+        .extend_ttl(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
 }
 
 fn read_liquidator(e: &Env) -> Address {
@@ -83,7 +71,7 @@ fn write_liquidator(e: &Env, liquidator: &Address) {
     e.storage().persistent().set(&key, liquidator);
     e.storage()
         .persistent()
-        .bump(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
+        .extend_ttl(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
 }
 
 fn get_deposit(env: Env, user: Address, denom: Symbol) -> u128 {
@@ -121,7 +109,7 @@ fn get_available_liquidity_by_token(env: Env, denom: Symbol) -> u128 {
         .unwrap_or(Map::new(&env));
     token_balance(
         &env,
-        &token_info.get(denom).unwrap().address,
+        &denom, // token_info.get(denom).unwrap().address,
         &contract_address,
     ) as u128
 }
@@ -169,7 +157,7 @@ fn get_token_decimal(env: Env, denom: Symbol) -> u32 {
         .storage()
         .persistent()
         .get(&DataKey::SupportedTokensInfo)
-        .unwrap();
+        .unwrap_or(Map::new(&env));
     token_info.get(denom).unwrap().decimals
 }
 
@@ -178,7 +166,7 @@ fn get_token_address(env: Env, denom: Symbol) -> Address {
         .storage()
         .persistent()
         .get(&DataKey::SupportedTokensInfo)
-        .unwrap();
+        .unwrap_or(Map::new(&env));
     token_info.get(denom).unwrap().address
 }
 
@@ -208,32 +196,45 @@ fn get_user_max_allowed_borrow_amount_usd(env: Env, user: Address) -> u128 {
     // the maximum amount in USD that a user can borrow
     let mut max_allowed_borrow_amount_usd = 0u128;
 
-    for token in get_supported_tokens(env.clone()) {
+    let reserve_map: Map<Symbol, ReserveConfiguration> = env
+        .storage()
+        .persistent()
+        .get::<DataKey, Map<Symbol, ReserveConfiguration>>(&DataKey::ReserveConfiguration)
+        .unwrap();
+    let prices: Map<Symbol, u128> = env.storage()
+        .persistent()
+        .get(&DataKey::Prices)
+        .unwrap_or(Map::new(&env));
+    let token_info: Map<Symbol, TokenInfo> = env
+        .storage()
+        .persistent()
+        .get(&DataKey::SupportedTokensInfo)
+        .unwrap_or(Map::new(&env));
+
+    let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+    for token in supported_tokens {
         let use_user_deposit_as_collateral =
             user_deposit_as_collateral(env.clone(), user.clone(), token.clone());
 
         if use_user_deposit_as_collateral {
             let user_deposit: u128 = get_deposit(env.clone(), user.clone(), token.clone());
 
-            let reserve_configuration: ReserveConfiguration = env
-                .storage()
-                .persistent()
-                .get::<DataKey, Map<Symbol, ReserveConfiguration>>(&DataKey::ReserveConfiguration)
-                .unwrap()
+            let reserve_configuration: ReserveConfiguration = reserve_map
                 .get(token.clone())
                 .unwrap();
 
             let loan_to_value_ratio: u128 = reserve_configuration.loan_to_value_ratio;
 
-            let token_decimals: u32 = get_token_decimal(env.clone(), token.clone());
-
-            let price: u128 = fetch_price_by_token(env.clone(), token.clone());
+            let token_decimals: u32 = token_info.get(token.clone()).unwrap().decimals;
+            
+            let price: u128 = prices.get(token.clone()).unwrap_or(0_u128);
 
             let user_deposit_usd: u128 =
                 Decimal::from_i128_with_scale(user_deposit as i128, token_decimals)
                     .mul(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
                     .to_u128_with_decimals(USD_DECIMALS)
                     .unwrap();
+            // let user_deposit_usd: u128 = user_deposit * price / 10_u128.pow(token_decimals);
 
             max_allowed_borrow_amount_usd +=
                 user_deposit_usd * loan_to_value_ratio / HUNDRED_PERCENT;
@@ -424,7 +425,7 @@ fn execute_update_liquidity_index_data(env: Env, denom: Symbol) {
     env.storage()
         .persistent()
         .set(&DataKey::LiquidityIndexData, &liquidity_map);
-    env.storage().persistent().bump(
+    env.storage().persistent().extend_ttl(
         &DataKey::LiquidityIndexData,
         MONTH_LIFETIME_THRESHOLD,
         MONTH_BUMP_AMOUNT,
@@ -456,12 +457,6 @@ fn user_deposit_as_collateral(env: Env, user: Address, denom: Symbol) -> bool {
         .get(denom.clone())
         .unwrap_or(false);
 
-    // // POC: Only xlm is used as a collateral
-    // let mut use_user_deposit_as_collateral: bool = false;
-    // if denom == symbol_short!("xlm") {
-    //     use_user_deposit_as_collateral = true;
-    // }
-
     use_user_deposit_as_collateral
 }
 
@@ -477,7 +472,8 @@ fn fetch_price_by_token(env: Env, denom: Symbol) -> u128 {
 fn get_user_deposited_usd(env: Env, user: Address) -> u128 {
     let mut user_deposited_usd = 0u128;
 
-    for token in get_supported_tokens(env.clone()) {
+    let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+    for token in supported_tokens {
         let user_deposit: u128 = get_deposit(env.clone(), user.clone(), token.clone());
 
         let token_decimals: u32 = get_token_decimal(env.clone(), token.clone());
@@ -496,7 +492,8 @@ fn get_user_deposited_usd(env: Env, user: Address) -> u128 {
 fn get_user_collateral_usd(env: Env, user: Address) -> u128 {
     let mut user_collateral_usd = 0_u128;
 
-    for token in get_supported_tokens(env.clone()) {
+    let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+    for token in supported_tokens {
         let use_user_deposit_as_collateral =
             user_deposit_as_collateral(env.clone(), user.clone(), token.clone());
 
@@ -520,7 +517,8 @@ fn get_user_collateral_usd(env: Env, user: Address) -> u128 {
 
 fn get_user_borrowed_usd(env: Env, user: Address) -> u128 {
     let mut user_borrowed_usd: u128 = 0_u128;
-    for token in get_supported_tokens(env.clone()) {
+    let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+    for token in supported_tokens {
         let user_borrow_amount_with_interest =
             get_user_borrow_amount_with_interest(env.clone(), user.clone(), token.clone());
 
@@ -559,9 +557,9 @@ fn get_available_to_borrow(env: Env, user: Address, denom: Symbol) -> u128 {
         .div(Decimal::from_i128_with_scale(price as i128, USD_DECIMALS))
         .to_u128_with_decimals(token_decimals)
         .unwrap();
+        // available_to_borrow = (max_allowed_borrow_amount_usd - sum_user_borrow_balance_usd) * 10_u128.pow(token_decimals) / price;
 
         let token_liquidity = get_available_liquidity_by_token(env.clone(), denom.clone());
-
         if available_to_borrow > token_liquidity {
             available_to_borrow = token_liquidity
         }
@@ -603,6 +601,9 @@ fn get_available_to_redeem(env: Env, user: Address, denom: Symbol) -> u128 {
                 .to_u128_with_decimals(token_decimals)
                 .unwrap();
 
+                // available_to_redeem = (sum_collateral_balance_usd - required_collateral_balance_usd) * 10_u128.pow(token_decimals) / price;
+
+
                 if available_to_redeem > user_token_balance {
                     available_to_redeem = user_token_balance;
                 }
@@ -624,7 +625,8 @@ fn get_user_liquidation_threshold(env: Env, user: Address) -> u128 {
     let mut liquidation_threshold_borrow_amount_usd = 0u128;
     let mut user_collateral_usd = 0u128;
 
-    for token in get_supported_tokens(env.clone()) {
+    let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+    for token in supported_tokens {
         let use_user_deposit_as_collateral =
             user_deposit_as_collateral(env.clone(), user.clone(), token.clone());
 
@@ -659,15 +661,42 @@ fn get_user_liquidation_threshold(env: Env, user: Address) -> u128 {
     liquidation_threshold_borrow_amount_usd * HUNDRED_PERCENT / user_collateral_usd
 }
 
-fn move_token(env: &Env, token: &Address, from: &Address, to: &Address, transfer_amount: i128) {
+fn move_token(env: &Env, token_address: &Address, from: &Address, to: &Address, transfer_amount: i128, denom: Symbol) {
     // new token interface
-    let token_client = token::Client::new(&env, &token);
+    let token_client = token_contract::Client::new(&env, &token_address);
     token_client.transfer(&from, to, &transfer_amount);
+    let mut token_info_map: Map<Symbol, TokenInfo> = env
+        .storage()
+        .persistent()
+        .get(&DataKey::SupportedTokensInfo)
+        .unwrap_or(Map::new(&env));
+    let mut matched_token = token_info_map.get(denom.clone()).unwrap();
+    let balance = token_client.balance(&env.current_contract_address());
+    matched_token.balance = balance;
+    token_info_map.set(denom.clone(), matched_token);
+    env.storage()
+        .persistent()
+        .set(&DataKey::SupportedTokensInfo, &token_info_map);
+    env.storage().persistent().extend_ttl(
+        &DataKey::SupportedTokensInfo,
+        MONTH_LIFETIME_THRESHOLD,
+        MONTH_BUMP_AMOUNT,
+    );
 }
 
-fn token_balance(env: &Env, token: &Address, user_address: &Address) -> i128 {
-    let token_client = token::Client::new(&env, &token);
-    token_client.balance(&user_address)
+fn token_balance(env: &Env, denom: &Symbol, user_address: &Address) -> i128 {
+    // let token_client = token_contract::Client::new(&env, &token_address);
+    // token_client.balance(&user_address)
+    let token_info: Map<Symbol, TokenInfo> = env
+        .storage()
+        .persistent()
+        .get(&DataKey::SupportedTokensInfo)
+        .unwrap_or(Map::new(&env));
+    let balance = match token_info.get(denom.clone()) {
+        Some(info) => info.balance,
+        None => 0,
+    };
+    balance
 }
 
 #[contract]
@@ -693,6 +722,7 @@ impl LendingContract {
             &user_address,
             &env.current_contract_address(),
             deposited_token_amount.clone() as i128,
+            denom.clone(),
         );
 
         execute_update_liquidity_index_data(env.clone(), denom.clone());
@@ -730,7 +760,7 @@ impl LendingContract {
             &DataKey::UserMMTokenBalance(user_address.clone()),
             &user_mm_balance_map,
         );
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::UserMMTokenBalance(user_address.clone()),
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -763,7 +793,7 @@ impl LendingContract {
         env.storage()
             .persistent()
             .set(&DataKey::SupportedTokensList, &supported_tokens);
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::SupportedTokensList,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -775,6 +805,7 @@ impl LendingContract {
             name,
             symbol: denom.clone(),
             decimals,
+            balance: 0,
         };
 
         let mut supported_tokens_info: Map<Symbol, TokenInfo> = env
@@ -786,7 +817,7 @@ impl LendingContract {
         env.storage()
             .persistent()
             .set(&DataKey::SupportedTokensInfo, &supported_tokens_info);
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::SupportedTokensInfo,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -806,7 +837,7 @@ impl LendingContract {
         env.storage()
             .persistent()
             .set(&DataKey::ReserveConfiguration, &reserve_map);
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::ReserveConfiguration,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -830,7 +861,7 @@ impl LendingContract {
             &DataKey::TokensInterestRateModelParams,
             &token_interest_params_map,
         );
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::TokensInterestRateModelParams,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -853,7 +884,7 @@ impl LendingContract {
         env.storage()
             .persistent()
             .set(&DataKey::TotalBorrowData, &total_borrow_map);
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::TotalBorrowData,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -874,7 +905,7 @@ impl LendingContract {
         env.storage()
             .persistent()
             .set(&DataKey::LiquidityIndexData, &liquidity_map);
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::LiquidityIndexData,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -893,7 +924,7 @@ impl LendingContract {
             .unwrap_or(Map::new(&env));
         prices.set(denom.clone(), price);
         env.storage().persistent().set(&DataKey::Prices, &prices);
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::Prices,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -943,7 +974,7 @@ impl LendingContract {
             &DataKey::UserDepositAsCollateral(user.clone()),
             &user_deposit_as_collateral_map,
         );
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::UserDepositAsCollateral(user.clone()),
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -952,12 +983,6 @@ impl LendingContract {
 
     pub fn Borrow(env: Env, user: Address, denom: Symbol, amount: u128) {
         user.require_auth();
-
-        // let liquidator = read_liquidator(&env);
-
-        // if user == liquidator {
-        //     panic!("The liquidator cannot borrow");
-        // }
 
         // let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
 
@@ -1074,7 +1099,7 @@ impl LendingContract {
         env.storage()
             .persistent()
             .set(&DataKey::UserBorrowingInfo(user.clone()), &user_borrow_map);
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::UserBorrowingInfo(user.clone()),
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -1089,7 +1114,7 @@ impl LendingContract {
         env.storage()
             .persistent()
             .set(&DataKey::TotalBorrowData, &total_borrow_map);
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::TotalBorrowData,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -1101,6 +1126,7 @@ impl LendingContract {
             &env.current_contract_address(),
             &user,
             amount as i128,
+            denom.clone(),
         )
     }
 
@@ -1150,7 +1176,7 @@ impl LendingContract {
             &DataKey::UserMMTokenBalance(user.clone()),
             &user_mm_balance_map,
         );
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::UserMMTokenBalance(user.clone()),
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -1162,6 +1188,7 @@ impl LendingContract {
             &env.current_contract_address(),
             &user,
             amount as i128,
+            denom.clone(),
         )
     }
 
@@ -1175,6 +1202,7 @@ impl LendingContract {
             &user,
             &env.current_contract_address(),
             repay_amount.clone() as i128,
+            repay_token.clone(),
         );
 
         // let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
@@ -1270,7 +1298,7 @@ impl LendingContract {
         env.storage()
             .persistent()
             .set(&DataKey::UserBorrowingInfo(user.clone()), &user_borrow_map);
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::UserBorrowingInfo(user.clone()),
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -1285,7 +1313,7 @@ impl LendingContract {
         env.storage()
             .persistent()
             .set(&DataKey::TotalBorrowData, &total_borrow_map);
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::TotalBorrowData,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -1298,6 +1326,7 @@ impl LendingContract {
                 &env.current_contract_address(),
                 &user,
                 remaining_amount as i128,
+                repay_token.clone(),
             );
         }
     }
@@ -1316,7 +1345,8 @@ impl LendingContract {
             panic!("User borrowing has not reached the threshold of liquidation");
         }
 
-        for token in get_supported_tokens(env.clone()) {
+        let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+        for token in supported_tokens  {
             execute_update_liquidity_index_data(env.clone(), token.clone());
 
             let use_user_deposit_as_collateral =
@@ -1336,7 +1366,7 @@ impl LendingContract {
                     &DataKey::UserMMTokenBalance(user.clone()),
                     &user_mm_balance_map,
                 );
-                env.storage().persistent().bump(
+                env.storage().persistent().extend_ttl(
                     &DataKey::UserMMTokenBalance(user.clone()),
                     MONTH_LIFETIME_THRESHOLD,
                     MONTH_BUMP_AMOUNT,
@@ -1416,7 +1446,7 @@ impl LendingContract {
                     env.storage()
                         .persistent()
                         .set(&DataKey::UserBorrowingInfo(user.clone()), &user_borrow_map);
-                    env.storage().persistent().bump(
+                    env.storage().persistent().extend_ttl(
                         &DataKey::UserBorrowingInfo(user.clone()),
                         MONTH_LIFETIME_THRESHOLD,
                         MONTH_BUMP_AMOUNT,
@@ -1430,7 +1460,7 @@ impl LendingContract {
                     env.storage()
                         .persistent()
                         .set(&DataKey::TotalBorrowData, &total_borrow_map);
-                    env.storage().persistent().bump(
+                    env.storage().persistent().extend_ttl(
                         &DataKey::TotalBorrowData,
                         MONTH_LIFETIME_THRESHOLD,
                         MONTH_BUMP_AMOUNT,
@@ -1463,7 +1493,7 @@ impl LendingContract {
                     &DataKey::UserMMTokenBalance(liquidator.clone()),
                     &liquidator_mm_balance_map,
                 );
-                env.storage().persistent().bump(
+                env.storage().persistent().extend_ttl(
                     &DataKey::UserMMTokenBalance(liquidator.clone()),
                     MONTH_LIFETIME_THRESHOLD,
                     MONTH_BUMP_AMOUNT,
@@ -1566,7 +1596,7 @@ impl LendingContract {
         env.storage()
             .persistent()
             .set(&DataKey::ReserveConfiguration, &reserve_map);
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::ReserveConfiguration,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
@@ -1610,7 +1640,7 @@ impl LendingContract {
             &DataKey::TokensInterestRateModelParams,
             &token_interest_params_map,
         );
-        env.storage().persistent().bump(
+        env.storage().persistent().extend_ttl(
             &DataKey::TokensInterestRateModelParams,
             MONTH_LIFETIME_THRESHOLD,
             MONTH_BUMP_AMOUNT,
