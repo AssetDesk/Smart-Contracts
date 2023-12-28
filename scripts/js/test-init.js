@@ -1,13 +1,17 @@
 import SorobanClient from 'soroban-client';
-import { Address, xdr, ScInt, scValToNative } from 'soroban-client';
-// import {
-//     Keypair,
-//     Networks,
-//     TransactionBuilder,
-//     Operation,
-//     scValToNative,
-//     SorobanRpc
-// } from 'stellar-sdk';
+import { Address, xdr, ScInt } from 'soroban-client';
+
+import {
+    Keypair,
+    Networks,
+    TransactionBuilder,
+    Operation,
+    scValToNative,
+    nativeToScVal,
+    SorobanRpc,
+    Contract
+} from 'stellar-sdk';
+
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -33,52 +37,18 @@ const ETH = process.env.ETH;
 const FAUCET = process.env.FAUCET;
 
 // Configure SorobanClient to talk to the soroban-rpc
-const server = new SorobanClient.Server(
+const server = new SorobanRpc.Server(
     rpc_url, { allowHttp: true }
   );
-
-function sorobanBill(sim) {
-    // const sim = JSON.parse(file)
-    // console.log(sim);
-    const events = sim.events.map((event) => {
-        // const e = xdr.DiagnosticEvent.fromXDR(event, 'base64')
-
-        if (event.event().type().name === 'diagnostic')
-            return 0
-
-        return event.toXDR().length
-    })
-
-    const events_and_return_value_size = (
-        events.reduce((accumulator, currentValue) => accumulator + currentValue, 0) // events
-        // + Buffer.from(sim.results[0].xdr, 'base64').length // return value size
-    )
-    
-    // const sorobanTransactionData = xdr.SorobanTransactionData.fromXDR(sim.result.transactionData, 'base64')
-    const sorobanTransactionData = sim.transactionData._data._attributes;
-    console.log(sorobanTransactionData.resources);
-    // process.exit(0)
-    console.log({
-        CPU_instructions: Number(sim.cost.cpuInsns),
-        RAM: Number(sim.cost.memBytes),
-        // ledger_entry_reads: sorobanTransactionData.resources._attributes.footprint.readOnly.length,
-        // ledger_entry_writes: sorobanTransactionData.resources._attributes.footprint.readWrite.length,
-        // transaction_size: 0,
-        ledger_write_bytes: sorobanTransactionData.resources._attributes.writeBytes,
-        ledger_read_bytes: sorobanTransactionData.resources._attributes.readBytes,
-        events_and_return_value_size,
-        // ledger_entry_size: 0
-    })
-}
 
 async function tx_sim_with_fee(contract_address, func_name, args, user = admin, first_time = false) {
     
     const account = await server.getAccount(user);
     let fee = 2_000_000;
-    const contract = new SorobanClient.Contract(contract_address);
-    let transaction = new SorobanClient.TransactionBuilder(account, {
+    const contract = new Contract(contract_address);
+    let transaction = new TransactionBuilder(account, {
         fee,
-        networkPassphrase: SorobanClient.Networks.FUTURENET,
+        networkPassphrase: Networks.FUTURENET,
         })
         .addOperation(contract.call(func_name, ...args))
         .setTimeout(30)
@@ -136,10 +106,10 @@ async function tx_send(func_name, user_address, user_secret, args, first_time = 
     // console.log(tx_result, fee);
     console.log("--> Transaction fee :", fee);
 
-    const contract = new SorobanClient.Contract(contract_address);
-    let transaction = new SorobanClient.TransactionBuilder(account, {
+    const contract = new Contract(contract_address);
+    let transaction = new TransactionBuilder(account, {
         fee,
-        networkPassphrase: SorobanClient.Networks.FUTURENET,
+        networkPassphrase: Networks.FUTURENET,
         })
         .addOperation(contract.call(func_name, ...args))
         .setTimeout(30)
@@ -147,7 +117,7 @@ async function tx_send(func_name, user_address, user_secret, args, first_time = 
 
     transaction = await server.prepareTransaction(transaction);
 
-    const sourceKeypair = SorobanClient.Keypair.fromSecret(user_secret);
+    const sourceKeypair = Keypair.fromSecret(user_secret);
     transaction.sign(sourceKeypair);
     
     // console.log(transaction.toXDR("base64"));
@@ -182,7 +152,7 @@ async function tx_send(func_name, user_address, user_secret, args, first_time = 
 async function GetPrice(token) {
     const func_name = "GetPrice";
     const args = [
-        xdr.ScVal.scvSymbol(token),
+        nativeToScVal(token, {type: "symbol"}),
     ];
     const data = await tx_sim_with_fee(contract_address, func_name, args);
     // console.log(data);
@@ -192,7 +162,7 @@ async function GetPrice(token) {
 async function GetUserDepositedUsd(user_address) {
     const func_name = "GetUserDepositedUsd";
     const args = [
-        new SorobanClient.Address(user_address).toScVal(),
+        nativeToScVal(user_address, {type: "address"}),
     ];
     const data = await tx_sim_with_fee(contract_address, func_name, args);
     // console.log(data);
@@ -202,7 +172,7 @@ async function GetUserDepositedUsd(user_address) {
 async function GetUserBorrowedUsd(user_address) {
     const func_name = "GetUserBorrowedUsd";
     const args = [
-        new SorobanClient.Address(user_address).toScVal(),
+        nativeToScVal(user_address, {type: "address"}),
     ];
     const data = await tx_sim_with_fee(contract_address, func_name, args);
     // console.log(data);
@@ -212,8 +182,8 @@ async function GetUserBorrowedUsd(user_address) {
 async function GetDeposit(user_address, token) {
     const func_name = "GetDeposit";
     const args = [
-        new SorobanClient.Address(user_address).toScVal(),
-        xdr.ScVal.scvSymbol(token),
+        nativeToScVal(user_address, {type: "address"}),
+        nativeToScVal(token, {type: "symbol"}),
     ];
     const data = await tx_sim_with_fee(contract_address, func_name, args);
     // console.log(data);
@@ -223,8 +193,8 @@ async function GetDeposit(user_address, token) {
 async function GetAvailableToBorrow(user_address, token) {
     const func_name = "GetAvailableToBorrow";
     const args = [
-        new SorobanClient.Address(user_address).toScVal(),
-        xdr.ScVal.scvSymbol(token),
+        nativeToScVal(user_address, {type: "address"}),
+        nativeToScVal(token, {type: "symbol"}),
     ];
     const data = await tx_sim_with_fee(contract_address, func_name, args);
     // console.log(data);
@@ -234,7 +204,7 @@ async function GetAvailableToBorrow(user_address, token) {
 async function GetUserMaxAllowedBorrowAmountUsd(user_address) {
     const func_name = "GetUserMaxAllowedBorrowAmountUsd";
     const args = [
-        new SorobanClient.Address(user_address).toScVal(),
+        nativeToScVal(user_address, {type: "address"}),
     ];
     const data = await tx_sim_with_fee(contract_address, func_name, args);
     // console.log(data);
@@ -244,8 +214,8 @@ async function GetUserMaxAllowedBorrowAmountUsd(user_address) {
 async function GetUserBorrowingInfo(user_address, token) {
     const func_name = "GetUserBorrowingInfo";
     const args = [
-        new SorobanClient.Address(user_address).toScVal(),
-        xdr.ScVal.scvSymbol(token),
+        nativeToScVal(user_address, {type: "address"}),
+        nativeToScVal(token, {type: "symbol"}),
     ];
     const data = await tx_sim_with_fee(contract_address, func_name, args);
     // console.log(data);
@@ -255,8 +225,8 @@ async function GetUserBorrowingInfo(user_address, token) {
 async function GetAvailableToRedeem(user_address, token) {
     const func_name = "GetAvailableToRedeem";
     const args = [
-        new SorobanClient.Address(user_address).toScVal(),
-        xdr.ScVal.scvSymbol(token),
+        nativeToScVal(user_address, {type: "address"}),
+        nativeToScVal(token, {type: "symbol"}),
     ];
     const data = await tx_sim_with_fee(contract_address, func_name, args);
     // console.log(data);
@@ -266,8 +236,8 @@ async function GetAvailableToRedeem(user_address, token) {
 async function UpdatePrice(token, price) {
     const func_name = "UpdatePrice";
     const args = [
-        xdr.ScVal.scvSymbol(token),
-        new SorobanClient.ScInt(price).toU128(),
+        nativeToScVal(token, {type: "symbol"}),
+        nativeToScVal(price, {type: "u128"}),
     ];
     // const data = await tx_sim_with_fee(contract_address, func_name, args);
     // console.log(data);
@@ -277,9 +247,9 @@ async function UpdatePrice(token, price) {
 async function Faucet(user_address, user_secret, token_address, token_amount) {
     const func_name = "request_token";
     const args = [
-        new SorobanClient.Address(user_address).toScVal(),
-        new SorobanClient.Contract(token_address).address().toScVal(),
-        new SorobanClient.ScInt(token_amount).toI128(),
+        nativeToScVal(user_address, {type: "address"}),
+        nativeToScVal(token_address, {type: "address"}),
+        nativeToScVal(token_amount, {type: "i128"}),
     ];
 
     await tx_send(func_name, user_address, user_secret, args);
@@ -320,16 +290,16 @@ async function AddMarkets(token, token_address, decimals) {
 
     const func_name = "AddMarkets";
     const args = [
-        xdr.ScVal.scvSymbol(token),
-        new SorobanClient.Contract(token_address).address().toScVal(),
-        xdr.ScVal.scvSymbol(token),
-        xdr.ScVal.scvU32(decimals),
-        new SorobanClient.ScInt(75_00000).toU128(),
-        new SorobanClient.ScInt(80_00000).toU128(),
-        new SorobanClient.ScInt(min_interest_rate).toU128(),
-        new SorobanClient.ScInt(safe_borrow_max_rate).toU128(),
-        new SorobanClient.ScInt(rate_growth_factor).toU128(),
-        new SorobanClient.ScInt(optimal_utilization_ratio).toU128(),
+        nativeToScVal(token, {type: "symbol"}),
+        nativeToScVal(token_address, {type: "address"}),
+        nativeToScVal(token, {type: "symbol"}),
+        nativeToScVal(decimals, {type: "u32"}),
+        nativeToScVal(75_00000, {type: "u128"}),
+        nativeToScVal(80_00000, {type: "u128"}),
+        nativeToScVal(min_interest_rate, {type: "u128"}),
+        nativeToScVal(safe_borrow_max_rate, {type: "u128"}),
+        nativeToScVal(rate_growth_factor, {type: "u128"}),
+        nativeToScVal(optimal_utilization_ratio, {type: "u128"}),
     ];
     // const data = await tx_sim_with_fee(contract_address, func_name, args);
     // console.log(data);
@@ -345,11 +315,11 @@ async function SetTokenInterestRateModelParams(
 ) {
     const func_name = "SetTokenInterestRateModelParams";
     const args = [
-        xdr.ScVal.scvSymbol(denom),
-        new SorobanClient.ScInt(min_interest_rate).toU128(),
-        new SorobanClient.ScInt(safe_borrow_max_rate).toU128(),
-        new SorobanClient.ScInt(rate_growth_factor).toU128(),
-        new SorobanClient.ScInt(optimal_utilization_ratio).toU128(),
+        nativeToScVal(denom, {type: "symbol"}),
+        nativeToScVal(min_interest_rate, {type: "u128"}),
+        nativeToScVal(safe_borrow_max_rate, {type: "u128"}),
+        nativeToScVal(rate_growth_factor, {type: "u128"}),
+        nativeToScVal(optimal_utilization_ratio, {type: "u128"}),
     ];
     await tx_send(func_name, admin, admin_secret, args);
 }
@@ -357,9 +327,9 @@ async function SetTokenInterestRateModelParams(
 async function Deposit(user_address, user_secret, token, amount) {
     const func_name = "Deposit";
     const args = [
-        new SorobanClient.Address(user_address).toScVal(),
-        xdr.ScVal.scvSymbol(token),
-        new SorobanClient.ScInt(amount).toU128(),
+        nativeToScVal(user_address, {type: "address"}),
+        nativeToScVal(token, {type: "symbol"}),
+        nativeToScVal(amount, {type: "u128"}),
     ];
     // const data = await tx_sim_with_fee(contract_address, func_name, args);
     // console.log(data);
@@ -374,9 +344,9 @@ async function Deposit(user_address, user_secret, token, amount) {
 async function Redeem(user_address, user_secret, token, amount) {
     const func_name = "Redeem";
     const args = [
-        new SorobanClient.Address(user_address).toScVal(),
-        xdr.ScVal.scvSymbol(token),
-        new SorobanClient.ScInt(amount).toU128(),
+        nativeToScVal(user_address, {type: "address"}),
+        nativeToScVal(token, {type: "symbol"}),
+        nativeToScVal(amount, {type: "u128"}),
     ];
     await tx_send(func_name, user_address, user_secret, args);
 }
@@ -384,9 +354,9 @@ async function Redeem(user_address, user_secret, token, amount) {
 async function Repay(user_address, user_secret, token, amount) {
     const func_name = "Repay";
     const args = [
-        new SorobanClient.Address(user_address).toScVal(),
-        xdr.ScVal.scvSymbol(token),
-        new SorobanClient.ScInt(amount).toU128(),
+        nativeToScVal(user_address, {type: "address"}),
+        nativeToScVal(token, {type: "symbol"}),
+        nativeToScVal(amount, {type: "u128"}),
     ];
     await tx_send(func_name, user_address, user_secret, args);
 }
@@ -394,8 +364,8 @@ async function Repay(user_address, user_secret, token, amount) {
 async function ToggleCollateralSetting(user_address, user_secret, token) {
     const func_name = "ToggleCollateralSetting";
     const args = [
-        new SorobanClient.Address(user_address).toScVal(),
-        xdr.ScVal.scvSymbol(token),
+        nativeToScVal(user_address, {type: "address"}),
+        nativeToScVal(token, {type: "symbol"}),
     ];
     // const data = await tx_sim_with_fee(contract_address, func_name, args);
     // console.log(data);
@@ -405,9 +375,9 @@ async function ToggleCollateralSetting(user_address, user_secret, token) {
 async function Borrow(user_address, user_secret, token, amount) {
     const func_name = "Borrow";
     const args = [
-        new SorobanClient.Address(user_address).toScVal(),
-        xdr.ScVal.scvSymbol(token),
-        new SorobanClient.ScInt(amount).toU128(),
+        nativeToScVal(user_address, {type: "address"}),
+        nativeToScVal(token, {type: "symbol"}),
+        nativeToScVal(amount, {type: "u128"}),
     ];
     // const data = await tx_sim_with_fee(contract_address, func_name, args);
     // console.log(data);
@@ -417,7 +387,7 @@ async function Borrow(user_address, user_secret, token, amount) {
 async function GetInterestRate(token) {
     const func_name = "GetInterestRate";
     const args = [
-        xdr.ScVal.scvSymbol(token),
+        nativeToScVal(token, {type: "symbol"}),
     ];
 
     let data = await tx_sim_with_fee(contract_address, func_name, args);
@@ -427,7 +397,7 @@ async function GetInterestRate(token) {
 async function GetLiquidityRate(token) {
     const func_name = "GetLiquidityRate";
     const args = [
-        xdr.ScVal.scvSymbol(token),
+        nativeToScVal(token, {type: "symbol"}),
     ];
 
     let data = await tx_sim_with_fee(contract_address, func_name, args);
@@ -437,7 +407,7 @@ async function GetLiquidityRate(token) {
 async function GetTotalReservesByToken(token) {
     const func_name = "GetTotalReservesByToken";
     const args = [
-        xdr.ScVal.scvSymbol(token),
+        nativeToScVal(token, {type: "symbol"}),
     ];
 
     let data = await tx_sim_with_fee(contract_address, func_name, args);
@@ -447,7 +417,7 @@ async function GetTotalReservesByToken(token) {
 async function GetAvailableLiquidityByToken(token) {
     const func_name = "GetAvailableLiquidityByToken";
     const args = [
-        xdr.ScVal.scvSymbol(token),
+        nativeToScVal(token, {type: "symbol"}),
     ];
 
     let data = await tx_sim_with_fee(contract_address, func_name, args);
@@ -457,7 +427,7 @@ async function GetAvailableLiquidityByToken(token) {
 export async function token_balance(token_address, user_address) {
     const func_name = "balance";
     const args = [
-        new SorobanClient.Address(user_address).toScVal(),
+        nativeToScVal(user_address, {type: "address"}),
     ];
     const data = await tx_sim_with_fee(token_address, func_name, args);
     return data.tx_result;
@@ -540,11 +510,11 @@ const donor_21 = "GAQ567LZPTHA3GESBK2NHOS36UCQRKN4GRT6UACISI7FQRHVV4PG2UJW";
 const donor_21_s = "SBCC3SHXBGKWDEPJCBYNEVO2SZPVOEOXEUAS7PMD457H2QYGG4DXGTOZ";
 const donor_22 = "GBXQOXZP44QCJ7TQ3576GIMD7BKZQUKDXOOZUQLZD2R5HJFZWB6A2KED";
 const donor_22_s = "SC2Z32V73V66QAF73VE4LSKIDBKPHBDKJGD2C3VCRFIPCRHA2REWJ5CF";
-// await Deposit(donor_05, donor_05_s, "xlm", 9900_0000000n);
-// await ToggleCollateralSetting(donor_05, donor_05_s, "xlm");
-// await Borrow(donor_04, donor_04_s, "eth", 400000_000000_000000n); 0.4
+// await Deposit(donor_07, donor_07_s, "xlm", 9900_0000000n);
+// await ToggleCollateralSetting(donor_07, donor_07_s, "xlm");
+// await Borrow(donor_06, donor_06_s, "eth", 400000_000000_000000n); 0.4
 // await Borrow(donor_02, donor_02_s, "usdc", 400_000000n);
-// await Borrow(donor_05, donor_05_s, "xlm", 7000_0000000n);
+// await Borrow(donor_07, donor_07_s, "xlm", 7000_0000000n);
 
 
 let tvl_decimal8 = await GetTVL();
