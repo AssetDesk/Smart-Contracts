@@ -1,0 +1,1 @@
+soroban contract restore --durability persistent --wasm scripts/restore/soroban-contract-CD73OOYSO2K7HBOM4LYZV33MPGIKMFC2HWEY6A4VAJBVRNMQ3LFOY54I.wasm --source SDNTGAOPMR2VKBJUKYHWJOCCNBJA4EAXG5FTGFGHZPGPWLZM7TF63O5J --rpc-url https://rpc-futurenet.stellar.org:443/ --network-passphrase "Test SDF Future Network ; October 2022"

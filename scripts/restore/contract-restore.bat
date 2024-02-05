@@ -1,0 +1,1 @@
+soroban contract restore --durability persistent --id CCSFQG2VPQ5AMYT3HHEAEJMBNWX2PX3W3G34Z2H7ACQNHVN4WAMPMUGN --key-xdr AAAAFA== --source SDNTGAOPMR2VKBJUKYHWJOCCNBJA4EAXG5FTGFGHZPGPWLZM7TF63O5J --rpc-url https://rpc-futurenet.stellar.org:443/ --network-passphrase "Test SDF Future Network ; October 2022"

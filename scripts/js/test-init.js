@@ -1,6 +1,3 @@
-import SorobanClient from 'soroban-client';
-import { Address, xdr, ScInt } from 'soroban-client';
-
 import {
     Keypair,
     Networks,
@@ -19,7 +16,6 @@ dotenv.config();
 const rpc_url = process.env.RPC_URL;
 
 const contract_address = process.env.CONTRACT_ADDRESS;
-// const contract_address = "CDSZ45SXDU5ZIBNYL6VB3WC24DT7RJFP5ZQZPOOGNF557FW5XCHKNXUN";
 const admin = process.env.ADMIN;
 const admin_secret = process.env.ADMIN_SECRET;
 
@@ -510,11 +506,14 @@ const donor_21 = "GAQ567LZPTHA3GESBK2NHOS36UCQRKN4GRT6UACISI7FQRHVV4PG2UJW";
 const donor_21_s = "SBCC3SHXBGKWDEPJCBYNEVO2SZPVOEOXEUAS7PMD457H2QYGG4DXGTOZ";
 const donor_22 = "GBXQOXZP44QCJ7TQ3576GIMD7BKZQUKDXOOZUQLZD2R5HJFZWB6A2KED";
 const donor_22_s = "SC2Z32V73V66QAF73VE4LSKIDBKPHBDKJGD2C3VCRFIPCRHA2REWJ5CF";
-// await Deposit(donor_07, donor_07_s, "xlm", 9900_0000000n);
-// await ToggleCollateralSetting(donor_07, donor_07_s, "xlm");
-// await Borrow(donor_06, donor_06_s, "eth", 400000_000000_000000n); 0.4
-// await Borrow(donor_02, donor_02_s, "usdc", 400_000000n);
-// await Borrow(donor_07, donor_07_s, "xlm", 7000_0000000n);
+// await Deposit(donor_04, donor_04_s, "xlm", 9900_0000000n);
+// await ToggleCollateralSetting(donor_03, donor_03_s, "xlm");
+// console.log("  available to borrow:", await GetAvailableToBorrow(donor_01, "usdc"));
+// await Borrow(donor_02, donor_02_s, "eth", 300000_000000_000000n); 0.3
+// await Borrow(donor_01, donor_01_s, "usdc", 800_000000n);
+// await Borrow(donor_03, donor_03_s, "xlm", 7000_0000000n);
+
+// process.exit(0);
 
 
 let tvl_decimal8 = await GetTVL();
@@ -567,10 +566,12 @@ console.log("Total ETH :", eth_total, Number.parseFloat(10000n * eth_total / 1_0
 // let admin_btk = await token_balance(tokenB, admin);
 let admin_xlm = await token_balance(xlm_address, admin);
 let admin_eth = await token_balance(ETH, admin);
+let admin_usdc = await token_balance(USDC, admin);
 // let admin_deposit = await GetUserDepositedUsd(admin);
 // let admin_atk_may_borrow = await GetAvailableToBorrow(admin, "atk");
 console.log("Admin xlm balance:", admin_xlm, Number.parseFloat(10000n * admin_xlm / 10_000_000n) / 10000);
-console.log("Admin eth balance:", admin_eth, Number.parseFloat(10000n * admin_eth / 1_00000000_00000000_00000000n) / 10000);
+console.log("Admin eth balance:", admin_eth, Number.parseFloat(10000n * admin_eth / 1_000000_000000_000000n) / 10000);
+console.log("Admin usdc balance:", admin_xlm, Number.parseFloat(10000n * admin_usdc / 1_000_000n) / 10000);
 // console.log("      atk balance:", admin_atk, Number.parseFloat(10000n * admin_atk / 10_000_000n) / 10000);
 // console.log("      btk balance:", admin_btk, Number.parseFloat(10000n * admin_btk / 10_000_000n) / 10000);
 // console.log("      deposit usd:", admin_deposit, Number.parseFloat(10000n * admin_deposit / 100_000_000n) / 10000);
@@ -638,10 +639,10 @@ console.log("Admin eth balance:", admin_eth, Number.parseFloat(10000n * admin_et
 const user2 = "GCO33YJN33F7O6OKQDWCD72JJ4EKN2H24Y47FSAJZYH2XEGUPM5EN5A6";
 const user2_secret = "SDXFGLIDIQ3U37IQPHCAEEWTGCUZOE5676Y46FUZ3KW4QRJ3OL2DDBB3";
 // await Deposit(user2, user2_secret, "xlm", 100_0000000n);
-// await Deposit(user2, user2_secret, "usdc", 200_000000n);
+await Deposit(user2, user2_secret, "usdc", 200_000000n);
 // await ToggleCollateralSetting(user2, user2_secret, "xlm");
-// await ToggleCollateralSetting(user2, user2_secret, "usdc");
-// await Borrow(user2, user2_secret, "xlm", 200_0000000n);
+await ToggleCollateralSetting(user2, user2_secret, "usdc");
+await Borrow(user2, user2_secret, "xlm", 100_0000000n);
 // await Borrow(user2, user2_secret, "usdc", 1n * 1_000_000n); // 1 usdc
 // await Repay(user2, user2_secret, "usdc", 0); // All usdc
 // await Redeem(user2, user2_secret, "xlm", 0);

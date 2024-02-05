@@ -1,4 +1,11 @@
-import { xdr, Server, Contract, Address, hash, scValToNative } from 'soroban-client';
+// import { xdr, Server, Contract, Address, hash, scValToNative } from 'soroban-client';
+import {
+    scValToNative,
+    nativeToScVal,
+    SorobanRpc,
+    Contract,
+    xdr,
+  } from 'stellar-sdk';
 
 import util from 'util'
 import child_process from 'child_process'
@@ -27,17 +34,26 @@ const user1_secret = process.env.USER1_SECRET;
 const xlm_address = process.env.XLM;
 const tokenA = process.env.ATK;
 const tokenB = process.env.BTK;
+const USDC = process.env.USDC;
+const ETH = process.env.ETH;
+const FAUCET = process.env.FAUCET;
 
 // Configure SorobanClient to talk to the soroban-rpc
-const server = new Server(
+const server = new SorobanRpc.Server(
     rpc_url, { allowHttp: true }
   );
 
-async function sorobanCliBump(xdrKey, ledgersToBump) {
-  const { stdout, stderr } = await exec(`soroban contract bump --id ${contract_address} --key-xdr ${xdrKey} --source ${admin_secret} --rpc-url https://rpc-futurenet.stellar.org:443/ --network-passphrase "Test SDF Future Network ; October 2022" --durability persistent --ledgers-to-expire ${ledgersToBump}`);
-  console.log('  stdout:', stdout);
-  if (stderr != "") {console.log('  stderr:', stderr);}
-}
+  async function sorobanCliBump(xdrKey, ledgersToBump) {
+    const { stdout, stderr } = await exec(`soroban contract extend --id ${settings.contract.address} --key-xdr ${xdrKey} --source ${settings.admin.secret} --rpc-url https://rpc-futurenet.stellar.org:443/ --network-passphrase "Test SDF Future Network ; October 2022" --durability persistent --ledgers-to-extend ${ledgersToBump}`);
+    console.log('  stdout:', stdout);
+    if (stderr != "") {console.log('  stderr:', stderr);}
+  }
+  
+  async function sorobanCliRestore(xdrKey) {
+      const { stdout, stderr } = await exec(`soroban contract restore --id ${settings.contract.address} --key-xdr ${xdrKey} --source ${settings.admin.secret} --rpc-url https://rpc-futurenet.stellar.org:443/ --network-passphrase "Test SDF Future Network ; October 2022" --durability persistent`);
+      console.log('  stdout:', stdout);
+      if (stderr != "") {console.log('  stderr:', stderr);}
+    }
 
 const getKey_String = (key_string) => {
     let key = xdr.ScVal.scvVec([
@@ -46,29 +62,12 @@ const getKey_String = (key_string) => {
     return key;
 }
 
-const getKey_TOTAL_BORROW_DATA = (denom) => {
+const getKeyNameAddress = (name, address) => {
     let key = xdr.ScVal.scvVec([
-        xdr.ScVal.scvSymbol("TOTAL_BORROW_DATA"), 
-        xdr.ScVal.scvSymbol(denom),
+        xdr.ScVal.scvSymbol(name), 
+        nativeToScVal(address, {type: "address"}),
     ]);
     return key;
-}
-
-const getExpirationKey = (ledger_key) => {
-    let contractKey = xdr.LedgerKey.contractData(
-        new xdr.LedgerKeyContractData({
-            contract: new Contract(contract_address).address().toScAddress(),
-            key: ledger_key,
-            durability: xdr.ContractDataDurability.persistent()
-        })
-    ).toXDR();
-
-    let keyHash = hash(contractKey);
-    const expirationKey = xdr.LedgerKey.expiration(
-        new xdr.LedgerKeyExpiration({ keyHash }),
-    ).toXDR("base64");
-
-    return expirationKey;
 }
 
 
@@ -79,49 +78,43 @@ const getContractExpirationKey = (contract_address) => {
             key: new xdr.ScVal.scvLedgerKeyContractInstance(),
             durability: xdr.ContractDataDurability.persistent(),
         })
-    ).toXDR();
-
-    let keyHash = hash(contractKey);
-    const expirationKey = xdr.LedgerKey.expiration(
-        new xdr.LedgerKeyExpiration({ keyHash }),
     ).toXDR("base64");
 
-    return expirationKey;
-}
+    // let keyHash = hash(contractKey);
+    // const expirationKey = xdr.LedgerKey.expiration(
+    //     new xdr.LedgerKeyExpiration({ keyHash }),
+    // ).toXDR("base64");
 
-async function getInstanceValue(contract_address) {
-    const instanceKey = xdr.LedgerKey.contractData(
-        new xdr.LedgerKeyContractData({
-            contract: new Address(contract_address).toScAddress(),
-            key: xdr.ScVal.scvLedgerKeyContractInstance(),
-            durability: xdr.ContractDataDurability.persistent(),
-        })
-    );
-
-    const response = await server.getLedgerEntries([instanceKey,instanceKey]);
-    const dataEntry = xdr.LedgerEntryData.fromXDR(response.entries[0].xdr, 'base64');
-    return dataEntry.contractData().val().instance();
+    return contractKey;
 }
 
 async function getContractHashExpirationKey (contract_address) {
     
-    let instance = await getInstanceValue(contract_address)
-    let wasmHash = instance.executable().wasmHash();
-
-    const contractCodeXDR = xdr.LedgerKey.contractCode(
+    const server = new SorobanRpc.Server(rpc_url);
+    const contractKey = await getLedgerKeyContractCode(contract_address);
+    const response = await server.getLedgerEntries(contractKey);
+    const entry = response.entries[0].val;
+    const instance = entry.contractData().val().instance();
+    let wasm_hash_key = xdr.LedgerKey.contractCode(
         new xdr.LedgerKeyContractCode({
-        hash: Buffer.from(wasmHash, 'hex'),
+        hash: instance.executable()._value
         })
     );
-    let keyHash = hash(contractCodeXDR.toXDR());
-    // console.log(keyHash.toString('hex'));
-    const expirationKey = xdr.LedgerKey.expiration(
-        new xdr.LedgerKeyExpiration({ keyHash }),
-    ).toXDR("base64");
+    // const wasm_code = await server.getLedgerEntries(wasm_hash_key);
+    // console.log(wasm_code); 
 
-    return expirationKey;
+    return wasm_hash_key.toXDR("base64");
 }
 
+function getLedgerKeyContractCode(contractId) {
+    const contract  = new Contract(contractId);
+    // console.log(contract.getFootprint());
+    const instance = contract.getFootprint();
+    return instance;
+  }
+
+
+// Make a batch POST request
 
 // Make a batch POST request
 async function makeBatchRequest(keys) {
@@ -145,10 +138,12 @@ async function makeBatchRequest(keys) {
     // console.log(response_json);
     let expiration_json = {}
     for (const i in response_json.result.entries){
-        const entry_data = xdr.LedgerEntryData.fromXDR(response_json.result.entries[i].xdr, 'base64');
-        const keyHash = xdr.LedgerKey.expiration(new xdr.LedgerKeyExpiration({keyHash: entry_data.expiration().keyHash()})).toXDR("base64");
-        const final_ledger = entry_data.expiration().expirationLedgerSeq()
-        expiration_json[keyHash] = final_ledger;
+        // console.log(response_json.result.entries[i]);
+        // const entry_data = xdr.LedgerEntryData.fromXDR(response_json.result.entries[i].xdr, 'base64');
+        // const keyHash = xdr.LedgerKey.expiration(new xdr.LedgerKeyExpiration({keyHash: entry_data.expiration().keyHash()})).toXDR("base64");
+        // const final_ledger = entry_data.expiration().expirationLedgerSeq()
+        const keyHash = response_json.result.entries[i].key;
+        expiration_json[keyHash] = response_json.result.entries[i].liveUntilLedgerSeq;
     }
 
     expiration_json["latestLedger"] = response_json.result.latestLedger;
@@ -166,14 +161,38 @@ function secondsToMonthsWeeksDaysHoursString(seconds) {
     return timeString.trim();
 }
 
+const getLedgerKeySymbol = (contract, key) => {
+  
+    let contractKey = xdr.LedgerKey.contractData(
+      new xdr.LedgerKeyContractData({
+        contract: new Contract(contract).address().toScAddress(),
+        key,
+        durability: xdr.ContractDataDurability.persistent()
+      })
+    ).toXDR("base64");
+    return contractKey;
+  } 
+
 const namedKeys = {
-    "Admin            ": getExpirationKey(getKey_String("Admin")),
-    "Liquidator       ": getExpirationKey(getKey_String("Liquidator")),
+    "Admin            ": getLedgerKeySymbol(contract_address, getKey_String("Admin")),
+    "Liquidator       ": getLedgerKeySymbol(contract_address, getKey_String("Liquidator")),
+    "TotalBorrowData  ": getLedgerKeySymbol(contract_address, getKey_String("TotalBorrowData")),
+    "Prices           ": getLedgerKeySymbol(contract_address, getKey_String("Prices")),
+    "SupportedTokensInfo ": getLedgerKeySymbol(contract_address, getKey_String("SupportedTokensInfo")),
+    "SupportedTokensList ": getLedgerKeySymbol(contract_address, getKey_String("SupportedTokensList")),
+    "LiquidityIndexData  ": getLedgerKeySymbol(contract_address, getKey_String("LiquidityIndexData")),
+    "ReserveConfiguration          ": getLedgerKeySymbol(contract_address, getKey_String("ReserveConfiguration")),
+    "TokensInterestRateModelParams ": getLedgerKeySymbol(contract_address, getKey_String("TokensInterestRateModelParams")),
+    "UserMMTokenBalance      user1 ": getLedgerKeySymbol(contract_address, getKeyNameAddress("UserMMTokenBalance", user1)),
+    "UserDepositAsCollateral user1 ": getLedgerKeySymbol(contract_address, getKeyNameAddress("UserDepositAsCollateral", user1)),
+    "UserBorrowingInfo       user1 ": getLedgerKeySymbol(contract_address, getKeyNameAddress("UserBorrowingInfo", user1)),
     "Contract Lending": getContractExpirationKey(contract_address),
-    // "Contract Hash": await getContractHashExpirationKey(contract_address),
-    "Contract Token A": getContractExpirationKey(tokenA),
-    "Contract Token B": getContractExpirationKey(tokenB),
-    // "Token Contract Hash": await getContractHashExpirationKey(tokenA)
+    "Contract USDC   ": getContractExpirationKey(USDC),
+    "Contract ETH    ": getContractExpirationKey(ETH),
+    "Contract Faucet ": getContractExpirationKey(FAUCET),
+    "WASM Contract": await getContractHashExpirationKey(contract_address),
+    "WASM Tokens  "  : await getContractHashExpirationKey(USDC),
+    "WASM Faucet  "  : await getContractHashExpirationKey(FAUCET),
 }
 
 

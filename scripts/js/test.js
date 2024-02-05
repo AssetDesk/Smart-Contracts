@@ -2,6 +2,8 @@ import SorobanClient from 'soroban-client';
 import { Address, xdr, ScInt, scValToNative } from 'soroban-client';
 import dotenv from 'dotenv';
 
+import { SorobanRpc } from 'stellar-sdk';
+
 dotenv.config();
 
 const rpc_url = process.env.RPC_URL;
@@ -25,7 +27,7 @@ const ETH = process.env.ETH;
 const FAUCET = process.env.FAUCET;
 
 // Configure SorobanClient to talk to the soroban-rpc
-const server = new SorobanClient.Server(
+const server = new SorobanRpc.Server(
     rpc_url, { allowHttp: true }
   );
 
@@ -514,7 +516,7 @@ const donor_22_s = "SC2Z32V73V66QAF73VE4LSKIDBKPHBDKJGD2C3VCRFIPCRHA2REWJ5CF";
 // await ToggleCollateralSetting(donor_22, donor_22_s, "xlm");
 // await Borrow(donor_06, donor_06_s, "eth", 300000_000000_000000n);
 // await Borrow(donor_22, donor_22_s, "usdc", 500_000000n);
-// await Borrow(donor_07, donor_07_s, "xlm", 8000_0000000n);
+// await Borrow(donor_22, donor_22_s, "xlm", 1_0000000n);
 
 
 let tvl_decimal8 = await GetTVL();
@@ -531,21 +533,21 @@ console.log("========== Start ==========");
 // await Redeem(admin, admin_secret, "usdc", 990000_000000n);
 // await Redeem(admin, admin_secret, "eth", 990_000000_000000_000000n);
 
-// const xlm_price = await GetPrice("xlm");
-// const usdc_price = await GetPrice("usdc");
-// const eth_price = await GetPrice("eth");
+const xlm_price = await GetPrice("xlm");
+const usdc_price = await GetPrice("usdc");
+const eth_price = await GetPrice("eth");
 
-// const prices = await fetchCryptoPrices();
-// console.log(`The current XLM price is ${prices.xlmPrice} USD.`);
-// console.log(`The current ETH price is ${prices.ethPrice} USD.`);
+const prices = await fetchCryptoPrices();
+console.log(`The current XLM price is ${prices.xlmPrice} USD.`);
+console.log(`The current ETH price is ${prices.ethPrice} USD.`);
 
 // await UpdatePrice("xlm", BigInt(prices.xlmPrice * 100_000_000));
 // await UpdatePrice("eth", BigInt(prices.ethPrice * 100_000_000));
 // await UpdatePrice("usdc", 100_000_000n); // 1 USD
 
-// console.log(" xlm price:", xlm_price, Number.parseFloat(10000n * xlm_price / 100_000_000n) / 10000);
-// console.log(" usdc price:", usdc_price, Number.parseFloat(10000n * usdc_price / 100_000_000n) / 10000);
-// console.log(" eth price:", eth_price, Number.parseFloat(10000n * eth_price / 100_000_000n) / 10000);
+console.log(" xlm price:", xlm_price, Number.parseFloat(10000n * xlm_price / 100_000_000n) / 10000);
+console.log(" usdc price:", usdc_price, Number.parseFloat(10000n * usdc_price / 100_000_000n) / 10000);
+console.log(" eth price:", eth_price, Number.parseFloat(10000n * eth_price / 100_000_000n) / 10000);
 
 // process.exit(0);
 
@@ -621,8 +623,8 @@ console.log("Admin xlm balance:", admin_xlm, Number.parseFloat(10000n * admin_xl
 
 // await Deposit(user1, user1_secret, "xlm", 100_0000000n);
 // await ToggleCollateralSetting(user1, user1_secret, "xlm");
-await Borrow(user1, user1_secret, "usdc", 1n * 1_000_000n); // 1 usdc
-// await Borrow(user1, user1_secret, "btk", 1n * 10_000_000n); // 1 btk = 2 usd
+// await Borrow(user1, user1_secret, "usdc", 1n * 1_000_000n); // 1 usdc
+await Borrow(user1, user1_secret, "eth", 1n * 1_000_000n); // 
 // await Redeem(user1, user1_secret, "xlm", 0);
 // await Repay(user1, user1_secret, "usdc", 0); // All usdc
 
