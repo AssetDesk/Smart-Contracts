@@ -7,9 +7,10 @@
     "type": "module",
     "devDependencies": {
         "dotenv": "^16.3.1",
-        "soroban-client": "^1.0.0"
+        "soroban-client": "^1.0.0",
+        "stellar-sdk": "^11.2.0"
     },
     "dependencies": {
-        "stellar-sdk": "^11.1.0"
+        "stellar-sdk": "^11.2.0"
     }
 }
