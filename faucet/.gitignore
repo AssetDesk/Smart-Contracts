@@ -1,0 +1,6 @@
+target
+.soroban
+.vscode
+.env
+node_modules
+vendor
