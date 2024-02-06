@@ -7,3 +7,4 @@ vendor
 contracts/lending/target
 contracts/margin_positions/target
 .idea
+test_snapshots

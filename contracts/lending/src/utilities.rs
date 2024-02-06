@@ -1,5 +1,5 @@
 use soroban_sdk::{
-    contract, contractimpl, map, symbol_short, token, Address, Env, Map, String, Symbol, Vec,
+    contract, contractimpl, map, symbol_short, token, Address, Env, Map, String, Symbol, Vec, Error
 }; // contracterror, panic_with_error, vec
 
 use core::ops::{Add, Div, Mul};
@@ -51,20 +51,7 @@ pub fn set_admin(env: &Env, admin: &Address) {
     env.storage().persistent().set(&key, admin);
     env.storage()
         .persistent()
-        .bump(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
-}
-
-pub fn set_vault_contract(env: &Env, vault_contract: &Address) {
-    let key = DataKey::VaultContract;
-    env.storage().persistent().set(&key, vault_contract);
-    env.storage()
-        .persistent()
-        .bump(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
-}
-
-pub fn get_vault_contract(env: &Env) -> Address {
-    let key = DataKey::VaultContract;
-    env.storage().persistent().get(&key).unwrap()
+        .extend_ttl(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
 }
 
 pub fn get_liquidator(env: &Env) -> Address {
@@ -77,7 +64,7 @@ pub fn set_liquidator(env: &Env, liquidator: &Address) {
     env.storage().persistent().set(&key, liquidator);
     env.storage()
         .persistent()
-        .bump(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
+        .extend_ttl(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
 }
 
 pub fn get_deposit(env: Env, user: Address, denom: Symbol) -> u128 {
@@ -107,7 +94,7 @@ pub fn get_deposit(env: Env, user: Address, denom: Symbol) -> u128 {
 }
 
 pub fn get_available_liquidity_by_token(env: Env, denom: Symbol) -> u128 {
-    let contract_address = get_vault_contract(&env);
+    
     let token_info: Map<Symbol, TokenInfo> = env
         .storage()
         .persistent()
@@ -116,7 +103,7 @@ pub fn get_available_liquidity_by_token(env: Env, denom: Symbol) -> u128 {
     token_balance(
         &env,
         &token_info.get(denom).unwrap().address,
-        &contract_address,
+        &env.current_contract_address(),
     ) as u128
 }
 
@@ -344,6 +331,7 @@ pub fn get_total_reserves_by_token(env: Env, denom: Symbol) -> u128 {
 }
 
 pub fn get_liquidity_rate(env: Env, denom: Symbol) -> u128 {
+    
     let total_borrow_data: TotalBorrowData = get_total_borrow_data(env.clone(), denom.clone());
     let expected_annual_interest_income: u128 = total_borrow_data.expected_annual_interest_income;
 
@@ -418,7 +406,7 @@ pub fn execute_update_liquidity_index_data(env: Env, denom: Symbol) {
     env.storage()
         .persistent()
         .set(&DataKey::LiquidityIndexData, &liquidity_map);
-    env.storage().persistent().bump(
+    env.storage().persistent().extend_ttl(
         &DataKey::LiquidityIndexData,
         MONTH_LIFETIME_THRESHOLD,
         MONTH_BUMP_AMOUNT,
@@ -653,10 +641,17 @@ pub fn get_user_liquidation_threshold(env: Env, user: Address) -> u128 {
     liquidation_threshold_borrow_amount_usd * HUNDRED_PERCENT / user_collateral_usd
 }
 
+
 pub fn move_token(env: &Env, token: &Address, from: &Address, to: &Address, transfer_amount: i128) {
+    // require transfer_amount > 0
+    // if transfer_amount == 0 {
+    //     panic_with_error!(&env, Error::ZeroValue);
+    // }
+
     // new token interface
     let token_client = token::Client::new(&env, &token);
     token_client.transfer(&from, to, &transfer_amount);
+
 }
 
 pub fn token_balance(env: &Env, token: &Address, user_address: &Address) -> i128 {

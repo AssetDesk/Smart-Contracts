@@ -43,6 +43,7 @@ pub struct TokenInfo {
     pub name: Symbol,
     pub symbol: Symbol,
     pub decimals: u32,
+    pub balance: i128,
 }
 
 #[contracttype]

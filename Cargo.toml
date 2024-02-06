@@ -2,12 +2,10 @@
 resolver = "2"
 members = [
     "contracts/lending",
-    "contracts/margin_positions",
-    "contracts/vault_contract",
 ]
 
 [workspace.dependencies]
-soroban-sdk = "20.0.0-rc2"
+soroban-sdk = "20.2.0"
 
 [profile.release]
 opt-level = "z"
