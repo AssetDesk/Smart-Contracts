@@ -38,6 +38,7 @@ impl LendingContract {
             &user_address,
             &env.current_contract_address(),
             deposited_token_amount.clone() as i128,
+            denom.clone(),
         );
 
         execute_update_liquidity_index_data(env.clone(), denom.clone());
@@ -142,6 +143,7 @@ impl LendingContract {
             &env.current_contract_address(),
             &user,
             amount as i128,
+            denom.clone(),
         )
     }
 
@@ -303,6 +305,7 @@ impl LendingContract {
             &env.current_contract_address(),
             &user,
             amount as i128,
+            denom.clone(),
         )
     }
 
@@ -316,6 +319,7 @@ impl LendingContract {
             &user,
             &env.current_contract_address(),
             repay_amount.clone() as i128,
+            repay_token.clone(),
         );
 
         // let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
@@ -440,6 +444,7 @@ impl LendingContract {
                 &env.current_contract_address(),
                 &user,
                 remaining_amount as i128,
+                repay_token.clone(),
             );
         } 
     }

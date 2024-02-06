@@ -102,7 +102,7 @@ pub fn get_available_liquidity_by_token(env: Env, denom: Symbol) -> u128 {
         .unwrap_or(Map::new(&env));
     token_balance(
         &env,
-        &token_info.get(denom).unwrap().address,
+        &denom,
         &env.current_contract_address(),
     ) as u128
 }
@@ -438,12 +438,6 @@ pub fn user_deposit_as_collateral(env: Env, user: Address, denom: Symbol) -> boo
         .get(denom.clone())
         .unwrap_or(false);
 
-    // // POC: Only xlm is used as a collateral
-    // let mut use_user_deposit_as_collateral: bool = false;
-    // if denom == symbol_short!("xlm") {
-    //     use_user_deposit_as_collateral = true;
-    // }
-
     use_user_deposit_as_collateral
 }
 
@@ -642,19 +636,39 @@ pub fn get_user_liquidation_threshold(env: Env, user: Address) -> u128 {
 }
 
 
-pub fn move_token(env: &Env, token: &Address, from: &Address, to: &Address, transfer_amount: i128) {
-    // require transfer_amount > 0
-    // if transfer_amount == 0 {
-    //     panic_with_error!(&env, Error::ZeroValue);
-    // }
-
+pub fn move_token(env: &Env, token_address: &Address, from: &Address, to: &Address, transfer_amount: i128, denom: Symbol) {
     // new token interface
-    let token_client = token::Client::new(&env, &token);
+    let token_client = token::Client::new(&env, &token_address);
     token_client.transfer(&from, to, &transfer_amount);
-
+    let mut token_info_map: Map<Symbol, TokenInfo> = env
+        .storage()
+        .persistent()
+        .get(&DataKey::SupportedTokensInfo)
+        .unwrap_or(Map::new(&env));
+    let mut matched_token = token_info_map.get(denom.clone()).unwrap();
+    let balance = token_client.balance(&env.current_contract_address());
+    matched_token.balance = balance;
+    token_info_map.set(denom.clone(), matched_token);
+    env.storage()
+        .persistent()
+        .set(&DataKey::SupportedTokensInfo, &token_info_map);
+    env.storage().persistent().extend_ttl(
+        &DataKey::SupportedTokensInfo,
+        MONTH_LIFETIME_THRESHOLD,
+        MONTH_BUMP_AMOUNT,
+    );
 }
 
-pub fn token_balance(env: &Env, token: &Address, user_address: &Address) -> i128 {
-    let token_client = token::Client::new(&env, &token);
-    token_client.balance(&user_address)
+pub fn token_balance(env: &Env, denom: &Symbol, user_address: &Address) -> i128 {
+    // Read balance from cache
+    let token_info: Map<Symbol, TokenInfo> = env
+        .storage()
+        .persistent()
+        .get(&DataKey::SupportedTokensInfo)
+        .unwrap_or(Map::new(&env));
+    let balance = match token_info.get(denom.clone()) {
+        Some(info) => info.balance,
+        None => 0,
+    };
+    balance
 }
