@@ -7,8 +7,8 @@ use crate::storage::*;
 use std::println;
 
 use soroban_sdk::testutils::{Address as _, Events, Ledger, LedgerInfo};
-use soroban_sdk::{symbol_short, token, Address, Env, IntoVal, String, Symbol};
 use soroban_sdk::token::Client;
+use soroban_sdk::{symbol_short, token, Address, Env, IntoVal, String, Symbol};
 
 mod token_contract {
     soroban_sdk::contractimport!(file = "./token/soroban_token_contract.optimized.wasm");
@@ -456,7 +456,8 @@ pub fn success_borrow_setup() -> (
     let _available_to_redeem: u128 =
         lending_contract_client.get_available_to_redeem(&user1, &symbol_short!("eth"));
 
-    let user_deposited_balance: u128 = lending_contract_client.get_deposit(&user1, &symbol_short!("eth"));
+    let user_deposited_balance: u128 =
+        lending_contract_client.get_deposit(&user1, &symbol_short!("eth"));
 
     assert_eq!(user_deposited_balance, DEPOSIT_AMOUNT_ETH);
 
@@ -476,7 +477,8 @@ pub fn success_borrow_setup() -> (
     current_info.timestamp = 2000;
     env.ledger().set(current_info);
 
-    let user_deposited_balance: u128 = lending_contract_client.get_deposit(&user1, &symbol_short!("xlm"));
+    let user_deposited_balance: u128 =
+        lending_contract_client.get_deposit(&user1, &symbol_short!("xlm"));
 
     assert_eq!(user_deposited_balance, DEPOSIT_AMOUNT_XLM);
 
@@ -631,7 +633,8 @@ fn test_successful_deposits_of_one_token() {
         lending_contract_client.get_total_borrow_data(&symbol_short!("eth"));
     println!("Total borrow data: {:?}", total_borrow_data);
 
-    let reserves_by_token: u128 = lending_contract_client.get_total_reserves_by_token(&symbol_short!("eth"));
+    let reserves_by_token: u128 =
+        lending_contract_client.get_total_reserves_by_token(&symbol_short!("eth"));
     println!("Total Reserves for Eth : {:?}", reserves_by_token);
 
     user_deposited_balance = lending_contract_client.get_deposit(&user1, &symbol_short!("eth"));
@@ -651,8 +654,10 @@ fn test_successful_deposits_of_one_token() {
 fn test_get_deposit() {
     let (lending_contract_client, admin, user) = success_deposit_of_one_token_setup();
 
-    let user_deposit_amount_eth: u128 = lending_contract_client.get_deposit(&user, &symbol_short!("eth"));
-    let user_deposit_amount_xlm: u128 = lending_contract_client.get_deposit(&user, &symbol_short!("xlm"));
+    let user_deposit_amount_eth: u128 =
+        lending_contract_client.get_deposit(&user, &symbol_short!("eth"));
+    let user_deposit_amount_xlm: u128 =
+        lending_contract_client.get_deposit(&user, &symbol_short!("xlm"));
 
     assert_eq!(user_deposit_amount_xlm, 0); // 0
     assert_eq!(user_deposit_amount_eth, 500000000000000000000); // 500
@@ -662,8 +667,10 @@ fn test_get_deposit() {
 fn test_get_mm_token_price() {
     let (lending_contract_client, admin, user) = success_deposit_of_one_token_setup();
 
-    let get_mm_token_price_eth: u128 = lending_contract_client.get_mm_token_price(&symbol_short!("eth"));
-    let get_mm_token_price_xlm: u128 = lending_contract_client.get_mm_token_price(&symbol_short!("xlm"));
+    let get_mm_token_price_eth: u128 =
+        lending_contract_client.get_mm_token_price(&symbol_short!("eth"));
+    let get_mm_token_price_xlm: u128 =
+        lending_contract_client.get_mm_token_price(&symbol_short!("xlm"));
 
     assert_eq!(get_mm_token_price_xlm, 1000000000000000000); // 1:1
     assert_eq!(get_mm_token_price_eth, 1000000000000000000); // 1:1
@@ -685,8 +692,10 @@ fn test_get_liquidity_rate() {
         &BORROW_SECOND_TOKEN_FIRST_PART,
     );
 
-    let get_liquidity_rate_eth: u128 = lending_contract_client.get_liquidity_rate(&symbol_short!("eth"));
-    let get_liquidity_rate_xlm: u128 = lending_contract_client.get_liquidity_rate(&symbol_short!("xlm"));
+    let get_liquidity_rate_eth: u128 =
+        lending_contract_client.get_liquidity_rate(&symbol_short!("eth"));
+    let get_liquidity_rate_xlm: u128 =
+        lending_contract_client.get_liquidity_rate(&symbol_short!("xlm"));
 
     assert_eq!(get_liquidity_rate_xlm, 1153846153846153846); // ~1.154%
     assert_eq!(get_liquidity_rate_eth, 0);
@@ -1053,11 +1062,13 @@ fn test_full_borrow() {
     ledger_info.timestamp = 10000;
     env.ledger().set(ledger_info.clone());
 
-    let user_deposited_balance_eth: u128 = lending_contract_client.get_deposit(&user, &symbol_short!("eth"));
+    let user_deposited_balance_eth: u128 =
+        lending_contract_client.get_deposit(&user, &symbol_short!("eth"));
 
     assert_eq!(user_deposited_balance_eth, 200_000000000000000000); // 200 ETH
 
-    let user_deposited_balance_xlm: u128 = lending_contract_client.get_deposit(&user, &symbol_short!("xlm"));
+    let user_deposited_balance_xlm: u128 =
+        lending_contract_client.get_deposit(&user, &symbol_short!("xlm"));
 
     assert_eq!(user_deposited_balance_xlm, 300_000000000000000000); // 300 XLM
 
@@ -1183,7 +1194,6 @@ fn test_redeem() {
     println!("   Borrow 1: {:?}", env.budget().cpu_instruction_cost());
 
     // println!("   Borrow test: {:?}", lending_contract_client.borrow_test(&user, &symbol_short!("eth"), &1_000));
-
 
     let user1 = Address::generate(&env);
     token_usdc.mint(&user1, &1000_0000000_i128);
