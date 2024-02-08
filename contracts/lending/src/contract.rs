@@ -45,7 +45,7 @@ impl LendingContract {
             denom.clone(),
         );
 
-        execute_update_liquidity_index_data(env.clone(), denom.clone());
+        let _ = execute_update_liquidity_index_data(env.clone(), denom.clone())?;
 
         let token_decimals: u32 = get_token_decimal(env.clone(), denom.clone());
         let mm_token_price: u128 = get_mm_token_price(env.clone(), denom.clone())?;
@@ -97,7 +97,7 @@ impl LendingContract {
             panic_with_error!(env, Error::UnsupportedToken);
         }
 
-        execute_update_liquidity_index_data(env.clone(), denom.clone());
+        let _ = execute_update_liquidity_index_data(env.clone(), denom.clone())?;
 
         let current_balance = get_deposit(env.clone(), user.clone(), denom.clone())?;
         if amount > current_balance {
@@ -172,7 +172,7 @@ impl LendingContract {
             panic_with_error!(env, Error::NotEnoughLiquidity);
         };
 
-        execute_update_liquidity_index_data(env.clone(), denom.clone());
+        let _ = execute_update_liquidity_index_data(env.clone(), denom.clone())?;
 
         let user_borrow_amount_with_interest: u128 =
             get_user_borrow_amount_with_interest(env.clone(), user.clone(), denom.clone())?;
@@ -333,7 +333,7 @@ impl LendingContract {
         let user_borrowing_info =
             get_user_borrowing_info(env.clone(), user.clone(), repay_token.clone())?;
 
-        execute_update_liquidity_index_data(env.clone(), repay_token.clone());
+        let _ = execute_update_liquidity_index_data(env.clone(), repay_token.clone())?;
 
         let user_borrow_amount_with_interest =
             get_user_borrow_amount_with_interest(env.clone(), user.clone(), repay_token.clone())
@@ -469,7 +469,7 @@ impl LendingContract {
         }
 
         for token in get_supported_tokens(env.clone()) {
-            execute_update_liquidity_index_data(env.clone(), token.clone());
+            let _ = execute_update_liquidity_index_data(env.clone(), token.clone())?;
 
             let use_user_deposit_as_collateral =
                 user_deposit_as_collateral(env.clone(), user.clone(), token.clone())?;
