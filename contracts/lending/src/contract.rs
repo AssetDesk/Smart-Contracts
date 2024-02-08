@@ -822,7 +822,7 @@ impl LendingContract {
                 if (sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold
                     >= sum_collateral_balance_usd - user_token_balance_usd)
                 {
-                    panic_with_error!(env, Error::MustNotHaveBorrow);
+                    panic_with_error!(env, Error::RemainingCollateralNotEnough);
                 }
             }
         }
