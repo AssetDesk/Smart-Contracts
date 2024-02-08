@@ -337,7 +337,7 @@ impl LendingContract {
 
         let user_borrow_amount_with_interest =
             get_user_borrow_amount_with_interest(env.clone(), user.clone(), repay_token.clone())
-                .unwrap();
+                ?;
 
         if repay_amount == 0 {
             repay_amount = user_borrow_amount_with_interest;

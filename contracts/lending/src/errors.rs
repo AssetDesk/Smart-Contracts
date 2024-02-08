@@ -14,5 +14,5 @@ pub enum Error {
     NotEnoughLiquidity = 7,
     NotOverLiquidationThreshold = 8,
     RemainingCollateralNotEnough = 10,
-    MustNotHaveBorrow = 10,
+    MustNotHaveBorrow = 11,
 }
