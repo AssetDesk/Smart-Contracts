@@ -1,10 +1,6 @@
 #![allow(dead_code)]
 
-use core::ops::{Div, Mul};
-use rust_decimal::prelude::ToPrimitive;
-use rust_decimal::{Decimal, MathematicalOps};
-
-use soroban_sdk::{contracttype, map, symbol_short, token, Address, Env, Map, Symbol, Vec};
+use soroban_sdk::{contracttype, Address, Symbol};
 
 #[contracttype]
 #[derive(Clone)]

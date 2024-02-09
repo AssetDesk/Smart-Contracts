@@ -1249,7 +1249,7 @@ fn test_redeem() {
         env.budget().cpu_instruction_cost()
     );
     env.budget().reset_unlimited();
-    let UserMaxAllowedBorrowAmountUsd: u128 =
+    let user_max_allowed_borrow_amount_usd: u128 =
         lending_contract_client.get_user_max_allowed_borrow_usd(&user);
     println!(
         "      GetUserMaxAllowedBorrowAmountUsd : {:?}",

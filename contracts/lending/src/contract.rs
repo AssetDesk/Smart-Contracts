@@ -1,12 +1,7 @@
-#![no_std]
-
-use soroban_sdk::{
-    contract, contractimpl, map, panic_with_error, symbol_short, token, Address, Env, Map, String,
-    Symbol, Vec,
-};
+use soroban_sdk::{contract, contractimpl, panic_with_error, Address, Env, Map, Symbol, Vec};
 
 use core::ops::{Add, Div, Mul};
-use rust_decimal::prelude::{Decimal, MathematicalOps, ToPrimitive};
+use rust_decimal::prelude::Decimal;
 
 use crate::errors::Error;
 use crate::storage::*;
@@ -336,8 +331,7 @@ impl LendingContract {
         let _ = execute_update_liquidity_index_data(env.clone(), repay_token.clone())?;
 
         let user_borrow_amount_with_interest =
-            get_user_borrow_amount_with_interest(env.clone(), user.clone(), repay_token.clone())
-                ?;
+            get_user_borrow_amount_with_interest(env.clone(), user.clone(), repay_token.clone())?;
 
         if repay_amount == 0 {
             repay_amount = user_borrow_amount_with_interest;
@@ -464,7 +458,7 @@ impl LendingContract {
         let user_liquidation_threshold: u128 =
             get_user_liquidation_threshold(env.clone(), user.clone())?;
 
-        if (user_utilization_rate < user_liquidation_threshold) {
+        if user_utilization_rate < user_liquidation_threshold {
             panic_with_error!(env, Error::NotOverLiquidationThreshold);
         }
 
@@ -505,7 +499,7 @@ impl LendingContract {
                 let token_decimals = get_token_decimal(env.clone(), token.clone());
 
                 if user_borrow_amount_with_interest > 0 {
-                    if (liquidator_balance < user_borrow_amount_with_interest) {
+                    if liquidator_balance < user_borrow_amount_with_interest {
                         panic_with_error!(env, Error::NotEnoughBalance);
                     }
 
@@ -819,8 +813,8 @@ impl LendingContract {
                 let user_liquidation_threshold =
                     get_user_liquidation_threshold(env.clone(), user.clone())?;
 
-                if (sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold
-                    >= sum_collateral_balance_usd - user_token_balance_usd)
+                if sum_borrow_balance_usd * HUNDRED_PERCENT / user_liquidation_threshold
+                    >= sum_collateral_balance_usd - user_token_balance_usd
                 {
                     panic_with_error!(env, Error::RemainingCollateralNotEnough);
                 }

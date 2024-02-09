@@ -1,8 +1,6 @@
-use soroban_sdk::{
-    contract, contractimpl, map, symbol_short, token, Address, Env, Map, String, Symbol, Vec,
-};
+use soroban_sdk::{token, Address, Env, Map, Symbol, Vec};
 
-use core::ops::{Add, Div, Mul};
+use core::ops::{Div, Mul};
 use rust_decimal::prelude::{Decimal, MathematicalOps, ToPrimitive};
 
 use crate::errors::Error;
@@ -98,12 +96,7 @@ pub fn get_deposit(env: Env, user: Address, denom: Symbol) -> Result<u128, Error
 }
 
 pub fn get_available_liquidity_by_token(env: Env, denom: Symbol) -> Result<u128, Error> {
-    let token_info: Map<Symbol, TokenInfo> = env
-        .storage()
-        .persistent()
-        .get(&DataKey::SupportedTokensInfo)
-        .unwrap_or(Map::new(&env));
-    Ok(token_balance(&env, &denom, &env.current_contract_address()) as u128)
+    Ok(contract_token_balance(&env, &denom)? as u128)
 }
 
 pub fn get_total_borrow_data(env: Env, denom: Symbol) -> Result<TotalBorrowData, Error> {
@@ -677,7 +670,7 @@ pub fn move_token(
     );
 }
 
-pub fn token_balance(env: &Env, denom: &Symbol, user_address: &Address) -> i128 {
+pub fn contract_token_balance(env: &Env, denom: &Symbol) -> Result<i128, Error> {
     // Read balance from cache
     let token_info: Map<Symbol, TokenInfo> = env
         .storage()
@@ -688,5 +681,5 @@ pub fn token_balance(env: &Env, denom: &Symbol, user_address: &Address) -> i128 
         Some(info) => info.balance,
         None => 0,
     };
-    balance
+    Ok(balance)
 }
