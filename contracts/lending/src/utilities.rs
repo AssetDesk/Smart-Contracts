@@ -56,19 +56,6 @@ pub fn set_admin(env: &Env, admin: &Address) {
         .extend_ttl(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
 }
 
-pub fn get_liquidator(env: &Env) -> Address {
-    let key = DataKey::Liquidator;
-    env.storage().persistent().get(&key).unwrap()
-}
-
-pub fn set_liquidator(env: &Env, liquidator: &Address) {
-    let key = DataKey::Liquidator;
-    env.storage().persistent().set(&key, liquidator);
-    env.storage()
-        .persistent()
-        .extend_ttl(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
-}
-
 pub fn get_deposit(env: Env, user: Address, denom: Symbol) -> Result<u128, Error> {
     // calculates user deposit including deposit interest
     let token_decimals = get_token_decimal(env.clone(), denom.clone());

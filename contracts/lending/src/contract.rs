@@ -12,12 +12,11 @@ pub(crate) struct LendingContract;
 
 #[contractimpl]
 impl LendingContract {
-    pub fn initialize(env: Env, admin: Address, liquidator: Address) -> Result<(), Error> {
+    pub fn initialize(env: Env, admin: Address) -> Result<(), Error> {
         if has_admin(&env) {
             panic_with_error!(env, Error::AlreadyInitialized);
         }
         set_admin(&env, &admin);
-        set_liquidator(&env, &liquidator);
 
         Ok(())
     }
@@ -448,10 +447,13 @@ impl LendingContract {
         Ok(())
     }
 
-    pub fn liquidation(env: Env, user: Address) -> Result<(), Error> {
-        // liquidator only
-        let liquidator: Address = get_liquidator(&env);
+    pub fn liquidation(env: Env, user: Address, liquidator: Address) -> Result<(), Error> {
+        
         liquidator.require_auth();
+        // liquidator must not have any borrow
+        if get_user_borrowed_usd(env.clone(), liquidator.clone())? > 0 {
+            panic_with_error!(env, Error::MustNotHaveBorrow);
+        }
 
         let user_utilization_rate = get_user_utilization_rate(env.clone(), user.clone())?;
 

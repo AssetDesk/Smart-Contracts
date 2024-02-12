@@ -8,8 +8,6 @@ pub enum DataKey {
     VaultContract,
     Admin,
     // Address of the Contract admin account
-    Liquidator,
-    // Address of the liquidator account
     TotalBorrowData,
     // Map of TotalBorrowData per denom
     SupportedTokensInfo,

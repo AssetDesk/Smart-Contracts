@@ -65,7 +65,7 @@ pub fn success_deposit_of_one_token_setup() -> (LendingContractClient<'static>, 
     let user1 = Address::generate(&env);
     let liquidator = Address::generate(&env);
 
-    lending_contract_client.initialize(&admin, &liquidator);
+    lending_contract_client.initialize(&admin);
 
     let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
@@ -201,7 +201,7 @@ pub fn success_deposit_of_diff_token_with_prices(
     let user1 = Address::generate(&env);
     let liquidator = Address::generate(&env);
 
-    lending_contract_client.initialize(&admin, &liquidator);
+    lending_contract_client.initialize(&admin);
 
     let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
@@ -372,7 +372,7 @@ pub fn success_borrow_setup() -> (
     let user1 = Address::generate(&env);
     let liquidator = Address::generate(&env);
 
-    lending_contract_client.initialize(&admin, &liquidator);
+    lending_contract_client.initialize(&admin);
 
     let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
@@ -547,7 +547,7 @@ fn test_successful_deposits_of_one_token() {
     let user1 = Address::generate(&env);
     let liquidator = Address::generate(&env);
 
-    lending_contract_client.initialize(&admin, &liquidator);
+    lending_contract_client.initialize(&admin);
 
     let token_xlm = create_custom_token(&env, &admin, "Xlm", "xlm", &TOKENS_DECIMALS);
     let token_eth = create_custom_token(&env, &admin, "Eth", "eth", &TOKENS_DECIMALS);
@@ -1327,7 +1327,7 @@ fn test_budget() {
     env.budget().reset_unlimited();
     let lending_contract_address = env.register_contract(None, LendingContract);
     // mod wasm_contract {
-    //     soroban_sdk::contractimport!(file = "./target/wasm32-unknown-unknown/release/soroban_lending.wasm");
+    //     soroban_sdk::contractimport!(file = "C:/Zpoken/blockchain/Soroban/soroban-lending/target/wasm32-unknown-unknown/release/lending.optimized.wasm");
     // }
     // let lending_contract_address = &env.register_contract_wasm(None, wasm_contract::WASM);
     let lending_contract_client = LendingContractClient::new(&env, &lending_contract_address);
@@ -1337,7 +1337,7 @@ fn test_budget() {
 
     let token_xlm = create_custom_token(&env, &admin, "XLM", "xlm", &7);
 
-    lending_contract_client.initialize(&admin, &liquidator);
+    lending_contract_client.initialize(&admin);
 
     env.budget().reset_unlimited();
     lending_contract_client.add_markets(
