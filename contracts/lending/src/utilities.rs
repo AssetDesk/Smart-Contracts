@@ -322,7 +322,7 @@ pub fn get_total_reserves_by_token(env: Env, denom: Symbol) -> Result<u128, Erro
 
 pub fn get_liquidity_rate(env: Env, denom: Symbol) -> Result<u128, Error> {
     let total_borrow_data: TotalBorrowData = get_total_borrow_data(env.clone(), denom.clone())?;
-    let expected_annual_interest_income: u128 = total_borrow_data.expected_annual_interest_income;
+    let expected_annual_income: u128 = total_borrow_data.expected_annual_income;
 
     let reserves_by_token: u128 = get_total_reserves_by_token(env.clone(), denom.clone())?;
 
@@ -332,7 +332,7 @@ pub fn get_liquidity_rate(env: Env, denom: Symbol) -> Result<u128, Error> {
         Ok(0u128)
     } else {
         let liquidity_rate: u128 = Decimal::from_i128_with_scale(
-            expected_annual_interest_income as i128,
+            expected_annual_income as i128,
             INTEREST_RATE_DECIMALS,
         )
         .mul(Decimal::from_i128_with_scale(HUNDRED as i128, 0u32))

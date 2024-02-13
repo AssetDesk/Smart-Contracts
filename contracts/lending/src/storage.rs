@@ -53,7 +53,7 @@ pub struct LiquidityIndexData {
 pub struct TotalBorrowData {
     pub denom: Symbol,
     pub total_borrowed_amount: u128,
-    pub expected_annual_interest_income: u128,
+    pub expected_annual_income: u128,
     pub average_interest_rate: u128,
     pub timestamp: u64,
 }

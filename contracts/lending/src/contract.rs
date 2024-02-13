@@ -10,6 +10,7 @@ use crate::utilities::*;
 #[contract]
 pub(crate) struct LendingContract;
 
+
 #[contractimpl]
 impl LendingContract {
     pub fn initialize(env: Env, admin: Address) -> Result<(), Error> {
@@ -212,8 +213,8 @@ impl LendingContract {
 
         let total_borrow_data: TotalBorrowData = get_total_borrow_data(env.clone(), denom.clone())?;
 
-        let expected_annual_interest_income: u128 = total_borrow_data
-            .expected_annual_interest_income
+        let expected_annual_income: u128 = total_borrow_data
+            .expected_annual_income
             - Decimal::from_i128_with_scale(
                 user_borrowing_info.borrowed_amount as i128,
                 borrowed_token_decimals,
@@ -241,7 +242,7 @@ impl LendingContract {
 
         let total_average_interest_rate = HUNDRED
             * Decimal::from_i128_with_scale(
-                expected_annual_interest_income as i128,
+                expected_annual_income as i128,
                 INTEREST_RATE_DECIMALS,
             )
             .div(Decimal::from_i128_with_scale(
@@ -254,7 +255,7 @@ impl LendingContract {
         let new_total_borrow_data: TotalBorrowData = TotalBorrowData {
             denom: denom.clone(),
             total_borrowed_amount: total_borrowed_amount,
-            expected_annual_interest_income: expected_annual_interest_income,
+            expected_annual_income: expected_annual_income,
             average_interest_rate: total_average_interest_rate,
             timestamp: env.ledger().timestamp(),
         };
@@ -355,7 +356,7 @@ impl LendingContract {
 
         let repay_token_decimals: u32 = get_token_decimal(env.clone(), repay_token.clone());
 
-        let expected_annual_interest_income = total_borrow_data.expected_annual_interest_income
+        let expected_annual_income = total_borrow_data.expected_annual_income
             + Decimal::from_i128_with_scale(
                 (user_borrow_amount_with_interest - user_borrowing_info.borrowed_amount) as i128,
                 repay_token_decimals,
@@ -383,7 +384,7 @@ impl LendingContract {
         if total_borrowed_amount != 0u128 {
             total_average_interest_rate = HUNDRED
                 * Decimal::from_i128_with_scale(
-                    expected_annual_interest_income as i128,
+                    expected_annual_income as i128,
                     INTEREST_RATE_DECIMALS,
                 )
                 .div(Decimal::from_i128_with_scale(
@@ -397,7 +398,7 @@ impl LendingContract {
         let new_total_borrow_data = TotalBorrowData {
             denom: repay_token.clone(),
             total_borrowed_amount: total_borrowed_amount,
-            expected_annual_interest_income: expected_annual_interest_income,
+            expected_annual_income: expected_annual_income,
             average_interest_rate: total_average_interest_rate,
             timestamp: env.ledger().timestamp(),
         };
@@ -516,8 +517,8 @@ impl LendingContract {
 
                     let total_borrow_data = get_total_borrow_data(env.clone(), token.clone())?;
 
-                    let expected_annual_interest_income = total_borrow_data
-                        .expected_annual_interest_income
+                    let expected_annual_income = total_borrow_data
+                        .expected_annual_income
                         - Decimal::from_i128_with_scale(
                             (user_borrowing_info.borrowed_amount) as i128,
                             token_decimals,
@@ -536,7 +537,7 @@ impl LendingContract {
                     if total_borrowed_amount != 0u128 {
                         total_average_interest_rate = HUNDRED
                             * Decimal::from_i128_with_scale(
-                                expected_annual_interest_income as i128,
+                                expected_annual_income as i128,
                                 INTEREST_RATE_DECIMALS,
                             )
                             .div(Decimal::from_i128_with_scale(
@@ -550,7 +551,7 @@ impl LendingContract {
                     let new_total_borrow_data = TotalBorrowData {
                         denom: token.clone(),
                         total_borrowed_amount: total_borrowed_amount,
-                        expected_annual_interest_income: expected_annual_interest_income,
+                        expected_annual_income: expected_annual_income,
                         average_interest_rate: total_average_interest_rate,
                         timestamp: env.ledger().timestamp(),
                     };
@@ -724,7 +725,7 @@ impl LendingContract {
         let total_borrow_data: TotalBorrowData = TotalBorrowData {
             denom: denom.clone(),
             total_borrowed_amount: 0_u128,
-            expected_annual_interest_income: 0_u128,
+            expected_annual_income: 0_u128,
             average_interest_rate: 0_u128,
             timestamp: env.ledger().timestamp(),
         };

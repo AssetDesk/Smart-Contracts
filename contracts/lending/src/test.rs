@@ -196,6 +196,10 @@ pub fn success_deposit_of_diff_token_with_prices(
 
     env.budget().reset_unlimited();
     let lending_contract_address = env.register_contract(None, LendingContract);
+    // mod wasm_contract {
+    //     soroban_sdk::contractimport!(file = "C:/Zpoken/blockchain/Soroban/soroban-lending/target/wasm32-unknown-unknown/release/lending.optimized.wasm");
+    // }
+    // let lending_contract_address = &env.register_contract_wasm(None, wasm_contract::WASM);
     let lending_contract_client = LendingContractClient::new(&env, &lending_contract_address);
     let admin = Address::generate(&env);
     let user1 = Address::generate(&env);
@@ -1325,11 +1329,11 @@ fn test_budget() {
     let env = Env::default();
     env.mock_all_auths();
     env.budget().reset_unlimited();
-    let lending_contract_address = env.register_contract(None, LendingContract);
-    // mod wasm_contract {
-    //     soroban_sdk::contractimport!(file = "C:/Zpoken/blockchain/Soroban/soroban-lending/target/wasm32-unknown-unknown/release/lending.optimized.wasm");
-    // }
-    // let lending_contract_address = &env.register_contract_wasm(None, wasm_contract::WASM);
+    // let lending_contract_address = env.register_contract(None, LendingContract);
+    mod wasm_contract {
+        soroban_sdk::contractimport!(file = "C:/Zpoken/blockchain/Soroban/soroban-lending/target/wasm32-unknown-unknown/release/lending.optimized.wasm");
+    }
+    let lending_contract_address = &env.register_contract_wasm(None, wasm_contract::WASM);
     let lending_contract_client = LendingContractClient::new(&env, &lending_contract_address);
     let admin: Address = Address::generate(&env);
     let user = Address::generate(&env);
