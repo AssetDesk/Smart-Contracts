@@ -915,139 +915,139 @@ fn test_success_repay_by_parts() {
     assert_eq!(user_borrowed_balance, 0);
 }
 
-// #[test]
-// fn test_success_liquidation() {
-//     const TOKENS_DECIMALS: u32 = 18;
-//     const BORROW_AMOUNT_ETH: u128 = 121 * 10u128.pow(TOKENS_DECIMALS); // 121 ETH
-//     const LIQUIDATOR_DEPOSIT_AMOUNT_ETH: u128 = 10_000 * 10u128.pow(TOKENS_DECIMALS); // 10_000 ETH
-//     const YEAR_IN_SECONDS: u64 = 31536000;
+#[test]
+fn test_success_liquidation() {
+    const TOKENS_DECIMALS: u32 = 18;
+    const BORROW_AMOUNT_ETH: u128 = 121 * 10u128.pow(TOKENS_DECIMALS); // 121 ETH
+    const LIQUIDATOR_DEPOSIT_AMOUNT_ETH: u128 = 10_000 * 10u128.pow(TOKENS_DECIMALS); // 10_000 ETH
+    const YEAR_IN_SECONDS: u64 = 31536000;
 
-//     // contract reserves: 1000 ETH
-//     // user deposited 200 ETH and 300 XLM
-//     // user borrowed 50 ETH
-//     let (env, lending_contract_client, admin, user, liquidator, token_xlm, token_eth) =
-//         success_borrow_setup();
+    // contract reserves: 1000 ETH
+    // user deposited 200 ETH and 300 XLM
+    // user borrowed 50 ETH
+    let (env, lending_contract_client, admin, user, liquidator, token_xlm, token_eth) =
+        success_borrow_setup();
 
-//     let mut ledger_info: LedgerInfo = env.ledger().get();
-//     ledger_info.timestamp = 10000;
-//     env.ledger().set(ledger_info.clone());
+    let mut ledger_info: LedgerInfo = env.ledger().get();
+    ledger_info.timestamp = 10000;
+    env.ledger().set(ledger_info.clone());
 
-//     let user_deposited_balance_eth: u128 = lending_contract_client.get_deposit(&user, &symbol_short!("eth"));
+    let user_deposited_balance_eth: u128 = lending_contract_client.get_deposit(&user, &symbol_short!("eth"));
 
-//     assert_eq!(user_deposited_balance_eth, 200_000000000000000000); // 200 ETH
+    assert_eq!(user_deposited_balance_eth, 200_000000000000000000); // 200 ETH
 
-//     let user_deposited_balance_xlm: u128 =
-//         lending_contract_client.get_deposit(&user, &symbol_short!("xlm"));
+    let user_deposited_balance_xlm: u128 =
+        lending_contract_client.get_deposit(&user, &symbol_short!("xlm"));
 
-//     assert_eq!(user_deposited_balance_xlm, 300_000000000000000000); // 300 XLM
+    assert_eq!(user_deposited_balance_xlm, 300_000000000000000000); // 300 XLM
 
-//     let user_collateral_usd: u128 = lending_contract_client.get_user_collateral_usd(&user);
+    let user_collateral_usd: u128 = lending_contract_client.get_user_collateral_usd(&user);
 
-//     // 200 ETH * 2000 + 300 XLM * 10 == 403_000$
-//     assert_eq!(user_collateral_usd, 403_00000000000);
+    // 200 ETH * 2000 + 300 XLM * 10 == 403_000$
+    assert_eq!(user_collateral_usd, 403_00000000000);
 
-//     let reserve_configuration_xlm: ReserveConfiguration =
-//         lending_contract_client.get_reserve_configuration(&symbol_short!("xlm"));
+    let reserve_configuration_xlm: ReserveConfiguration =
+        lending_contract_client.get_reserve_configuration(&symbol_short!("xlm"));
 
-//     assert_eq!(reserve_configuration_xlm.loan_to_value_ratio, 7500000); // ltv_xlm = 75%
+    assert_eq!(reserve_configuration_xlm.loan_to_value_ratio, 7500000); // ltv_xlm = 75%
 
-//     let reserve_configuration_eth: ReserveConfiguration =
-//         lending_contract_client.get_reserve_configuration(&symbol_short!("eth"));
+    let reserve_configuration_eth: ReserveConfiguration =
+        lending_contract_client.get_reserve_configuration(&symbol_short!("eth"));
 
-//     assert_eq!(reserve_configuration_eth.loan_to_value_ratio, 8500000); // ltv_eth = 85%
+    assert_eq!(reserve_configuration_eth.loan_to_value_ratio, 8500000); // ltv_eth = 85%
 
-//     let user_max_allowed_borrow_amount_usd: u128 =
-//         lending_contract_client.get_user_max_allowed_borrow_usd(&user);
+    let user_max_allowed_borrow_amount_usd: u128 =
+        lending_contract_client.get_user_max_allowed_borrow_usd(&user);
 
-//     // 200 ETH * 0.85 * 2000 + 300 XLM * 0.75 * 10 == 340_000 + 2_250 = 342_250$
-//     assert_eq!(user_max_allowed_borrow_amount_usd, 342_250_00000000);
+    // 200 ETH * 0.85 * 2000 + 300 XLM * 0.75 * 10 == 340_000 + 2_250 = 342_250$
+    assert_eq!(user_max_allowed_borrow_amount_usd, 342_250_00000000);
 
-//     let user_borrowed_usd: u128 = lending_contract_client.get_user_borrowed_usd(&user);
+    let user_borrowed_usd: u128 = lending_contract_client.get_user_borrowed_usd(&user);
 
-//     assert_eq!(user_borrowed_usd, 100_000_00000000); // 50 ETH * 2000 = 100_000$
+    assert_eq!(user_borrowed_usd, 100_000_00000000); // 50 ETH * 2000 = 100_000$
 
-//     let available_to_borrow_eth: u128 =
-//         lending_contract_client.get_available_to_borrow(&user, &symbol_short!("eth"));
+    let available_to_borrow_eth: u128 =
+        lending_contract_client.get_available_to_borrow(&user, &symbol_short!("eth"));
 
-//     // (user_max_allowed_borrow_amount_usd - user_borrowed_usd) / price =
-//     // (342_250$ - 100_000$) / price = 242_250$ / price
-//     assert_eq!(available_to_borrow_eth, 121125000000000000000); // 242_250$ / 2000 == 121.125 ETH
+    // (user_max_allowed_borrow_amount_usd - user_borrowed_usd) / price =
+    // (342_250$ - 100_000$) / price = 242_250$ / price
+    assert_eq!(available_to_borrow_eth, 121125000000000000000); // 242_250$ / 2000 == 121.125 ETH
 
-//     lending_contract_client.borrow(&user, &symbol_short!("eth"), &BORROW_AMOUNT_ETH);
+    lending_contract_client.borrow(&user, &symbol_short!("eth"), &BORROW_AMOUNT_ETH);
 
-//     let available_to_borrow_eth: u128 =
-//         lending_contract_client.get_available_to_borrow(&user, &symbol_short!("eth"));
+    let available_to_borrow_eth: u128 =
+        lending_contract_client.get_available_to_borrow(&user, &symbol_short!("eth"));
 
-//     assert_eq!(available_to_borrow_eth, 125000000000000000); // 0.125 ETH
+    assert_eq!(available_to_borrow_eth, 125000000000000000); // 0.125 ETH
 
-//     let user_liquidation_threshold: u128 = lending_contract_client.get_user_liquidation_threshold(&user);
-//     assert_eq!(user_liquidation_threshold, 8992555); // 89.92555%
+    let user_liquidation_threshold: u128 = lending_contract_client.get_user_liquidation_threshold(&user);
+    assert_eq!(user_liquidation_threshold, 8992555); // 89.92555%
 
-//     let user_utilization_rate: u128 = lending_contract_client.GetUserUtilizationRate(&user);
-//     assert_eq!(user_utilization_rate, 8486352); // 84.86352% < 89.92555%
+    let user_utilization_rate: u128 = lending_contract_client.get_user_utilization_rate(&user);
+    assert_eq!(user_utilization_rate, 8486352); // 84.86352% < 89.92555%
 
-//     ledger_info.timestamp = 2 * YEAR_IN_SECONDS + 10000; // after 2 years
-//     env.ledger().set(ledger_info.clone());
+    ledger_info.timestamp = 2 * YEAR_IN_SECONDS + 10000; // after 2 years
+    env.ledger().set(ledger_info.clone());
 
-//     let available_to_borrow_eth: u128 =
-//         lending_contract_client.get_available_to_borrow(&user, &symbol_short!("eth"));
-//     assert_eq!(available_to_borrow_eth, 0);
+    let available_to_borrow_eth: u128 =
+        lending_contract_client.get_available_to_borrow(&user, &symbol_short!("eth"));
+    assert_eq!(available_to_borrow_eth, 0);
 
-//     let user_liquidation_threshold: u128 = lending_contract_client.get_user_liquidation_threshold(&user);
-//     assert_eq!(user_liquidation_threshold, 8992676); // 89.92676%
+    let user_liquidation_threshold: u128 = lending_contract_client.get_user_liquidation_threshold(&user);
+    assert_eq!(user_liquidation_threshold, 8992676); // 89.92676%
 
-//     let user_utilization_rate: u128 = lending_contract_client.GetUserUtilizationRate(&user);
-//     assert_eq!(user_utilization_rate, 9366274); // 93.66274% > 89.92676%
+    let user_utilization_rate: u128 = lending_contract_client.get_user_utilization_rate(&user);
+    assert_eq!(user_utilization_rate, 9366274); // 93.66274% > 89.92676%
 
-//     let user_deposit_amount_eth = lending_contract_client.get_deposit(&user, &symbol_short!("eth"));
-//     let user_deposit_amount_xlm = lending_contract_client.get_deposit(&user, &symbol_short!("xlm"));
+    let user_deposit_amount_eth = lending_contract_client.get_deposit(&user, &symbol_short!("eth"));
+    let user_deposit_amount_xlm = lending_contract_client.get_deposit(&user, &symbol_short!("xlm"));
 
-//     assert_eq!(user_deposit_amount_eth, 203_331286529000814400); // 203.331286529000814400 ETH
-//     assert_eq!(user_deposit_amount_xlm, 300_000000000000000000); // 300 XLM
+    assert_eq!(user_deposit_amount_eth, 203_331286529000814400); // 203.331286529000814400 ETH
+    assert_eq!(user_deposit_amount_xlm, 300_000000000000000000); // 300 XLM
 
-//     let user_borrow_amount_eth: u128 =
-//         lending_contract_client.get_user_borrow_with_interest(&user, &symbol_short!("eth"));
+    let user_borrow_amount_eth: u128 =
+        lending_contract_client.get_user_borrow_with_interest(&user, &symbol_short!("eth"));
 
-//     assert_eq!(user_borrow_amount_eth, 191850604584630250327); // 191.850604584630250327 ETH
+    assert_eq!(user_borrow_amount_eth, 191850604584630250327); // 191.850604584630250327 ETH
 
-//     lending_contract_client.deposit(
-//         &liquidator,
-//         &symbol_short!("eth"),
-//         &LIQUIDATOR_DEPOSIT_AMOUNT_ETH,
-//     );
+    lending_contract_client.deposit(
+        &liquidator,
+        &symbol_short!("eth"),
+        &LIQUIDATOR_DEPOSIT_AMOUNT_ETH,
+    );
 
-//     let liquidator_deposit_amount_eth =
-//         lending_contract_client.get_deposit(&liquidator, &symbol_short!("eth"));
+    let liquidator_deposit_amount_eth =
+        lending_contract_client.get_deposit(&liquidator, &symbol_short!("eth"));
 
-//     let liquidator_deposit_amount_xlm =
-//         lending_contract_client.get_deposit(&liquidator, &symbol_short!("xlm"));
+    let liquidator_deposit_amount_xlm =
+        lending_contract_client.get_deposit(&liquidator, &symbol_short!("xlm"));
 
-//     // TODO: need to correct the calculation inaccuracy
-//     assert_eq!(liquidator_deposit_amount_eth, 9999999999999999999999); // 9999.999999999999999999 ETH
-//     assert_eq!(liquidator_deposit_amount_xlm, 0); // 0
+    // TODO: need to correct the calculation inaccuracy
+    assert_eq!(liquidator_deposit_amount_eth, 9999999999999999999999); // 9999.999999999999999999 ETH
+    assert_eq!(liquidator_deposit_amount_xlm, 0); // 0
 
-//     lending_contract_client.Liquidation(&user);
+    lending_contract_client.liquidation(&user, &liquidator);
 
-//     let user_collateral_usd: u128 = lending_contract_client.get_user_collateral_usd(&user);
+    let user_collateral_usd: u128 = lending_contract_client.get_user_collateral_usd(&user);
 
-//     // after liquidation, all collateral is transferred to the liquidator
-//     assert_eq!(user_collateral_usd, 0);
+    // after liquidation, all collateral is transferred to the liquidator
+    assert_eq!(user_collateral_usd, 0);
 
-//     let user_borrowed_usd: u128 = lending_contract_client.get_user_borrowed_usd(&user);
+    let user_borrowed_usd: u128 = lending_contract_client.get_user_borrowed_usd(&user);
 
-//     // after liquidation, all borrowings are repaid by the liquidator
-//     assert_eq!(user_borrowed_usd, 0);
+    // after liquidation, all borrowings are repaid by the liquidator
+    assert_eq!(user_borrowed_usd, 0);
 
-//     let liquidator_deposit_amount_eth =
-//         lending_contract_client.get_deposit(&liquidator, &symbol_short!("eth"));
-//     let liquidator_deposit_amount_xlm =
-//         lending_contract_client.get_deposit(&liquidator, &symbol_short!("xlm"));
+    let liquidator_deposit_amount_eth =
+        lending_contract_client.get_deposit(&liquidator, &symbol_short!("eth"));
+    let liquidator_deposit_amount_xlm =
+        lending_contract_client.get_deposit(&liquidator, &symbol_short!("xlm"));
 
-//     // 9999.999999999999999999 ETH - 191.850604584630250327 ETH + 203.331286529000814400 ETH ~= 10011,480681944 ETH
-//     // TODO: need to correct the calculation inaccuracy
-//     assert_eq!(liquidator_deposit_amount_eth, 10008510511955314159271); // 10008.510511955314159271 ETH
-//     assert_eq!(liquidator_deposit_amount_xlm, 300000000000000000000); // 300 XLM
-// }
+    // 9999.999999999999999999 ETH - 191.850604584630250327 ETH + 203.331286529000814400 ETH ~= 10011,480681944 ETH
+    // TODO: need to correct the calculation inaccuracy
+    assert_eq!(liquidator_deposit_amount_eth, 10008510511955314159271); // 10008.510511955314159271 ETH
+    assert_eq!(liquidator_deposit_amount_xlm, 300000000000000000000); // 300 XLM
+}
 
 #[test]
 fn test_full_borrow() {
