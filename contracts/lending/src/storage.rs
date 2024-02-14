@@ -94,3 +94,10 @@ pub struct TokenInterestRateModelParams {
     pub rate_growth_factor: u128,
     pub optimal_utilization_ratio: u128,
 }
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct UserDataByToken {
+    pub deposited: u128,
+    pub borrowed: u128,
+}

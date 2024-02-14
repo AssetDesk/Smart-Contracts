@@ -8,7 +8,7 @@ use std::println;
 
 use soroban_sdk::testutils::{Address as _, Events, Ledger, LedgerInfo};
 use soroban_sdk::token::Client;
-use soroban_sdk::{symbol_short, token, Address, Env, IntoVal, String, Symbol};
+use soroban_sdk::{symbol_short, token, Address, Env, IntoVal, String, Symbol, vec};
 
 mod token_contract {
     soroban_sdk::contractimport!(file = "./token/soroban_token_contract.optimized.wasm");
@@ -1372,4 +1372,16 @@ fn test_tvl() {
     let (env, lending_contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
 
     assert_eq!(lending_contract_client.get_tvl(), 2_413_000 * 10u128.pow(8)); // 2_313_000 USD
+}
+
+#[test]
+fn test_get_user_balances() {
+    // user deposited 200 ETH and 300 XLM
+    let (env, lending_contract_client, admin, user, liquidator, token_xlm, token_eth) =
+        success_borrow_setup();
+
+    let user_balances = lending_contract_client.get_user_balances(&user);
+    println!("{:?}", user_balances);
+
+    assert_eq!(user_balances, vec!(&env, (symbol_short!("xlm"), UserDataByToken { deposited: 300000000000000000000, borrowed: 0 }), (symbol_short!("eth"), UserDataByToken { deposited: 200000000000000000000, borrowed: 50000000000000000000 })));
 }

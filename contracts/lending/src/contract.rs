@@ -857,6 +857,10 @@ impl LendingContract {
         get_deposit(env, user, denom)
     }
 
+    pub fn get_user_balances(env: Env, user_address: Address) -> Result<Vec<(Symbol, UserDataByToken)>, Error> {
+        get_user_balances(env, user_address)
+    }
+
     pub fn get_total_borrow_data(env: Env, denom: Symbol) -> Result<TotalBorrowData, Error> {
         get_total_borrow_data(env, denom)
     }

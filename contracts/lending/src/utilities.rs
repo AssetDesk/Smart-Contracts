@@ -85,6 +85,29 @@ pub fn get_deposit(env: Env, user: Address, denom: Symbol) -> Result<u128, Error
     Ok(user_token_balance)
 }
 
+pub fn get_user_balances(env: Env, user_address: Address) -> Result<Vec<(Symbol, UserDataByToken)>, Error> {
+    let mut result = Vec::<(Symbol, UserDataByToken)>::new(&env);
+
+    for token in get_supported_tokens(env.clone()) {
+        let user_deposit = get_deposit(env.clone(), user_address.clone(), token.clone())?;
+
+        let user_borrow_amount_with_interest = get_user_borrow_amount_with_interest(
+            env.clone(),
+            user_address.clone(),
+            token.clone(),
+        )?;
+
+        let user_data_by_token = UserDataByToken {
+            deposited: user_deposit,
+            borrowed: user_borrow_amount_with_interest,
+        };
+
+        result.push_back((token, user_data_by_token))
+    }
+
+    Ok(result)
+}
+
 pub fn get_available_liquidity_by_token(env: Env, denom: Symbol) -> Result<u128, Error> {
     Ok(contract_token_balance(&env, &denom)? as u128)
 }
