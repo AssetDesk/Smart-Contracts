@@ -5,6 +5,7 @@ use rust_decimal::prelude::{Decimal, MathematicalOps, ToPrimitive};
 
 use crate::errors::Error;
 use crate::storage::*;
+use crate::events;
 
 pub(crate) const DAY_IN_LEDGERS: u32 = 17280;
 pub(crate) const WEEK_BUMP_AMOUNT: u32 = 7 * DAY_IN_LEDGERS;
@@ -54,6 +55,8 @@ pub fn set_admin(env: &Env, admin: &Address) {
     env.storage()
         .persistent()
         .extend_ttl(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
+
+    events::set_admin(env, admin);
 }
 
 pub fn get_deposit(env: Env, user: Address, denom: Symbol) -> Result<u128, Error> {

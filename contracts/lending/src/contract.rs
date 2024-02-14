@@ -6,10 +6,10 @@ use rust_decimal::prelude::Decimal;
 use crate::errors::Error;
 use crate::storage::*;
 use crate::utilities::*;
+use crate::events;
 
 #[contract]
 pub(crate) struct LendingContract;
-
 
 #[contractimpl]
 impl LendingContract {
@@ -81,6 +81,8 @@ impl LendingContract {
             MONTH_BUMP_AMOUNT,
         );
 
+        events::deposit(&env, &user_address, &denom, &deposited_token_amount);
+
         Ok(())
     }
 
@@ -140,9 +142,11 @@ impl LendingContract {
             &get_token_address(env.clone(), denom.clone()),
             &env.current_contract_address(),
             &user,
-            amount as i128,
+            amount.clone() as i128,
             denom.clone(),
         );
+
+        events::redeem(&env, &user, &denom, &amount);
 
         Ok(())
     }
@@ -295,9 +299,11 @@ impl LendingContract {
             &get_token_address(env.clone(), denom.clone()),
             &env.current_contract_address(),
             &user,
-            amount as i128,
+            amount.clone() as i128,
             denom.clone(),
         );
+
+        events::redeem(&env, &user, &denom, &amount);
 
         Ok(())
     }
@@ -444,6 +450,8 @@ impl LendingContract {
                 repay_token.clone(),
             );
         }
+
+        events::repay(&env, &user, &repay_token, &repay_amount);
 
         Ok(())
     }
@@ -619,6 +627,9 @@ impl LendingContract {
                 );
             }
         }
+
+        events::liquidate(&env, &user, &liquidator);
+
         Ok(())
     }
 
