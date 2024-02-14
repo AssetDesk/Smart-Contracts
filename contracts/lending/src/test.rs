@@ -1371,7 +1371,7 @@ fn test_tvl() {
     // 1200 * 2000 + 1300 * 10 = 2413000
     let (env, lending_contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
 
-    assert_eq!(lending_contract_client.get_tvl(), 2_413_000 * 10u128.pow(8)); // 2_313_000 USD
+    assert_eq!(lending_contract_client.get_tvl(), 2_413_000 * 10u128.pow(8)); // 2_413_000 USD
 }
 
 #[test]
@@ -1384,4 +1384,12 @@ fn test_get_user_balances() {
     println!("{:?}", user_balances);
 
     assert_eq!(user_balances, vec!(&env, (symbol_short!("xlm"), UserDataByToken { deposited: 300000000000000000000, borrowed: 0 }), (symbol_short!("eth"), UserDataByToken { deposited: 200000000000000000000, borrowed: 50000000000000000000 })));
+}
+
+#[test]
+fn test_admin_should_be_set() {
+    let (env, lending_contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
+    assert_eq!(lending_contract_client.get_admin(), admin);
+    lending_contract_client.set_admin(&user);
+    assert_eq!(lending_contract_client.get_admin(), user);
 }

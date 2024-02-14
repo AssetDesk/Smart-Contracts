@@ -853,6 +853,20 @@ impl LendingContract {
         Ok(())
     }
 
+    pub fn get_admin(env: Env) -> Result<Address, Error> {
+        get_admin(&env)
+    }
+
+    pub fn set_admin(env: Env, new_admin: Address) -> Result<(), Error>{
+        // Admin only
+        let admin: Address = get_admin(&env).unwrap();
+        admin.require_auth();
+
+        set_admin(&env, &new_admin);
+
+        Ok(())
+    }
+
     pub fn get_deposit(env: Env, user: Address, denom: Symbol) -> Result<u128, Error> {
         get_deposit(env, user, denom)
     }
