@@ -3,7 +3,7 @@
 
 mod contract;
 mod errors;
+mod events;
 mod storage;
 mod test;
 mod utilities;
-mod events;

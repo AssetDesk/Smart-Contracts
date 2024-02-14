@@ -8,7 +8,7 @@ use std::println;
 
 use soroban_sdk::testutils::{Address as _, Events, Ledger, LedgerInfo};
 use soroban_sdk::token::Client;
-use soroban_sdk::{symbol_short, token, Address, Env, IntoVal, String, Symbol, vec};
+use soroban_sdk::{symbol_short, token, vec, Address, Env, IntoVal, String, Symbol};
 
 mod token_contract {
     soroban_sdk::contractimport!(file = "./token/soroban_token_contract.optimized.wasm");
@@ -932,7 +932,8 @@ fn test_success_liquidation() {
     ledger_info.timestamp = 10000;
     env.ledger().set(ledger_info.clone());
 
-    let user_deposited_balance_eth: u128 = lending_contract_client.get_deposit(&user, &symbol_short!("eth"));
+    let user_deposited_balance_eth: u128 =
+        lending_contract_client.get_deposit(&user, &symbol_short!("eth"));
 
     assert_eq!(user_deposited_balance_eth, 200_000000000000000000); // 200 ETH
 
@@ -980,7 +981,8 @@ fn test_success_liquidation() {
 
     assert_eq!(available_to_borrow_eth, 125000000000000000); // 0.125 ETH
 
-    let user_liquidation_threshold: u128 = lending_contract_client.get_user_liquidation_threshold(&user);
+    let user_liquidation_threshold: u128 =
+        lending_contract_client.get_user_liquidation_threshold(&user);
     assert_eq!(user_liquidation_threshold, 8992555); // 89.92555%
 
     let user_utilization_rate: u128 = lending_contract_client.get_user_utilization_rate(&user);
@@ -993,7 +995,8 @@ fn test_success_liquidation() {
         lending_contract_client.get_available_to_borrow(&user, &symbol_short!("eth"));
     assert_eq!(available_to_borrow_eth, 0);
 
-    let user_liquidation_threshold: u128 = lending_contract_client.get_user_liquidation_threshold(&user);
+    let user_liquidation_threshold: u128 =
+        lending_contract_client.get_user_liquidation_threshold(&user);
     assert_eq!(user_liquidation_threshold, 8992676); // 89.92676%
 
     let user_utilization_rate: u128 = lending_contract_client.get_user_utilization_rate(&user);
@@ -1383,7 +1386,26 @@ fn test_get_user_balances() {
     let user_balances = lending_contract_client.get_user_balances(&user);
     println!("{:?}", user_balances);
 
-    assert_eq!(user_balances, vec!(&env, (symbol_short!("xlm"), UserDataByToken { deposited: 300000000000000000000, borrowed: 0 }), (symbol_short!("eth"), UserDataByToken { deposited: 200000000000000000000, borrowed: 50000000000000000000 })));
+    assert_eq!(
+        user_balances,
+        vec!(
+            &env,
+            (
+                symbol_short!("xlm"),
+                UserDataByToken {
+                    deposited: 300000000000000000000,
+                    borrowed: 0
+                }
+            ),
+            (
+                symbol_short!("eth"),
+                UserDataByToken {
+                    deposited: 200000000000000000000,
+                    borrowed: 50000000000000000000
+                }
+            )
+        )
+    );
 }
 
 #[test]

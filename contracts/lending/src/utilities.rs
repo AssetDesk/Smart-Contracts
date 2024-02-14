@@ -4,8 +4,8 @@ use core::ops::{Div, Mul};
 use rust_decimal::prelude::{Decimal, MathematicalOps, ToPrimitive};
 
 use crate::errors::Error;
-use crate::storage::*;
 use crate::events;
+use crate::storage::*;
 
 pub(crate) const DAY_IN_LEDGERS: u32 = 17280;
 pub(crate) const WEEK_BUMP_AMOUNT: u32 = 7 * DAY_IN_LEDGERS;
@@ -85,17 +85,17 @@ pub fn get_deposit(env: Env, user: Address, denom: Symbol) -> Result<u128, Error
     Ok(user_token_balance)
 }
 
-pub fn get_user_balances(env: Env, user_address: Address) -> Result<Vec<(Symbol, UserDataByToken)>, Error> {
+pub fn get_user_balances(
+    env: Env,
+    user_address: Address,
+) -> Result<Vec<(Symbol, UserDataByToken)>, Error> {
     let mut result = Vec::<(Symbol, UserDataByToken)>::new(&env);
 
     for token in get_supported_tokens(env.clone()) {
         let user_deposit = get_deposit(env.clone(), user_address.clone(), token.clone())?;
 
-        let user_borrow_amount_with_interest = get_user_borrow_amount_with_interest(
-            env.clone(),
-            user_address.clone(),
-            token.clone(),
-        )?;
+        let user_borrow_amount_with_interest =
+            get_user_borrow_amount_with_interest(env.clone(), user_address.clone(), token.clone())?;
 
         let user_data_by_token = UserDataByToken {
             deposited: user_deposit,
@@ -357,17 +357,15 @@ pub fn get_liquidity_rate(env: Env, denom: Symbol) -> Result<u128, Error> {
     if reserves_by_token == 0 {
         Ok(0u128)
     } else {
-        let liquidity_rate: u128 = Decimal::from_i128_with_scale(
-            expected_annual_income as i128,
-            INTEREST_RATE_DECIMALS,
-        )
-        .mul(Decimal::from_i128_with_scale(HUNDRED as i128, 0u32))
-        .div(Decimal::from_i128_with_scale(
-            reserves_by_token as i128,
-            token_decimals,
-        ))
-        .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
-        .unwrap();
+        let liquidity_rate: u128 =
+            Decimal::from_i128_with_scale(expected_annual_income as i128, INTEREST_RATE_DECIMALS)
+                .mul(Decimal::from_i128_with_scale(HUNDRED as i128, 0u32))
+                .div(Decimal::from_i128_with_scale(
+                    reserves_by_token as i128,
+                    token_decimals,
+                ))
+                .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
+                .unwrap();
 
         Ok(liquidity_rate)
     }

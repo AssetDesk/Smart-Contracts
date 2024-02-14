@@ -15,22 +15,26 @@ pub(crate) fn set_admin(env: &Env, admin: &Address) {
 
 pub(crate) fn deposit(env: &Env, user_address: &Address, denom: &Symbol, amount: &u128) {
     let topics = (DEPOSIT, user_address.clone());
-    env.events().publish(topics, (denom.clone(), amount.clone()));
+    env.events()
+        .publish(topics, (denom.clone(), amount.clone()));
 }
 
 pub(crate) fn redeem(env: &Env, user_address: &Address, denom: &Symbol, amount: &u128) {
     let topics = (REDEEM, user_address.clone());
-    env.events().publish(topics, (denom.clone(), amount.clone()));
+    env.events()
+        .publish(topics, (denom.clone(), amount.clone()));
 }
 
 pub(crate) fn borrow(env: &Env, user_address: &Address, denom: &Symbol, amount: &u128) {
     let topics = (BORROW, user_address.clone());
-    env.events().publish(topics, (denom.clone(), amount.clone()));
+    env.events()
+        .publish(topics, (denom.clone(), amount.clone()));
 }
 
 pub(crate) fn repay(env: &Env, user_address: &Address, denom: &Symbol, amount: &u128) {
     let topics = (REPAY, user_address.clone());
-    env.events().publish(topics, (denom.clone(), amount.clone()));
+    env.events()
+        .publish(topics, (denom.clone(), amount.clone()));
 }
 
 pub(crate) fn liquidate(env: &Env, user_address: &Address, liquidator: &Address) {

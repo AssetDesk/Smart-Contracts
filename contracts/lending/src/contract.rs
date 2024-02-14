@@ -4,9 +4,9 @@ use core::ops::{Add, Div, Mul};
 use rust_decimal::prelude::Decimal;
 
 use crate::errors::Error;
+use crate::events;
 use crate::storage::*;
 use crate::utilities::*;
-use crate::events;
 
 #[contract]
 pub(crate) struct LendingContract;
@@ -217,8 +217,7 @@ impl LendingContract {
 
         let total_borrow_data: TotalBorrowData = get_total_borrow_data(env.clone(), denom.clone())?;
 
-        let expected_annual_income: u128 = total_borrow_data
-            .expected_annual_income
+        let expected_annual_income: u128 = total_borrow_data.expected_annual_income
             - Decimal::from_i128_with_scale(
                 user_borrowing_info.borrowed_amount as i128,
                 borrowed_token_decimals,
@@ -245,16 +244,13 @@ impl LendingContract {
             + new_user_borrow_amount;
 
         let total_average_interest_rate = HUNDRED
-            * Decimal::from_i128_with_scale(
-                expected_annual_income as i128,
-                INTEREST_RATE_DECIMALS,
-            )
-            .div(Decimal::from_i128_with_scale(
-                total_borrowed_amount as i128,
-                borrowed_token_decimals,
-            ))
-            .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
-            .unwrap();
+            * Decimal::from_i128_with_scale(expected_annual_income as i128, INTEREST_RATE_DECIMALS)
+                .div(Decimal::from_i128_with_scale(
+                    total_borrowed_amount as i128,
+                    borrowed_token_decimals,
+                ))
+                .to_u128_with_decimals(INTEREST_RATE_DECIMALS)
+                .unwrap();
 
         let new_total_borrow_data: TotalBorrowData = TotalBorrowData {
             denom: denom.clone(),
@@ -457,7 +453,6 @@ impl LendingContract {
     }
 
     pub fn liquidation(env: Env, user: Address, liquidator: Address) -> Result<(), Error> {
-        
         liquidator.require_auth();
         // liquidator must not have any borrow
         if get_user_borrowed_usd(env.clone(), liquidator.clone())? > 0 {
@@ -525,8 +520,7 @@ impl LendingContract {
 
                     let total_borrow_data = get_total_borrow_data(env.clone(), token.clone())?;
 
-                    let expected_annual_income = total_borrow_data
-                        .expected_annual_income
+                    let expected_annual_income = total_borrow_data.expected_annual_income
                         - Decimal::from_i128_with_scale(
                             (user_borrowing_info.borrowed_amount) as i128,
                             token_decimals,
@@ -857,7 +851,7 @@ impl LendingContract {
         get_admin(&env)
     }
 
-    pub fn set_admin(env: Env, new_admin: Address) -> Result<(), Error>{
+    pub fn set_admin(env: Env, new_admin: Address) -> Result<(), Error> {
         // Admin only
         let admin: Address = get_admin(&env).unwrap();
         admin.require_auth();
@@ -871,7 +865,10 @@ impl LendingContract {
         get_deposit(env, user, denom)
     }
 
-    pub fn get_user_balances(env: Env, user_address: Address) -> Result<Vec<(Symbol, UserDataByToken)>, Error> {
+    pub fn get_user_balances(
+        env: Env,
+        user_address: Address,
+    ) -> Result<Vec<(Symbol, UserDataByToken)>, Error> {
         get_user_balances(env, user_address)
     }
 
