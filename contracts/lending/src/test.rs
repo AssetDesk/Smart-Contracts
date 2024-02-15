@@ -1415,3 +1415,29 @@ fn test_admin_should_be_set() {
     lending_contract_client.set_admin(&user);
     assert_eq!(lending_contract_client.get_admin(), user);
 }
+
+#[test]
+fn test_should_add_and_remove_supported_token() {
+    let (env, lending_contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
+    assert_eq!(lending_contract_client.get_supported_tokens(), vec![&env, symbol_short!("xlm"), symbol_short!("eth")]);
+    lending_contract_client.add_supported_token(&symbol_short!("usdt"));
+    assert_eq!(lending_contract_client.get_supported_tokens(), vec![&env, symbol_short!("xlm"), symbol_short!("eth"), symbol_short!("usdt")]);
+    lending_contract_client.remove_supported_token(&symbol_short!("eth"));
+    assert_eq!(lending_contract_client.get_supported_tokens(), vec![&env, symbol_short!("xlm"), symbol_short!("usdt")]);
+}
+
+#[test]
+#[should_panic(expected = "HostError: Error(Contract, #4)")] // AlreadySupportedToken
+fn test_should_not_add_existing_supported_token() {
+    let (env, lending_contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
+    
+    lending_contract_client.add_supported_token(&symbol_short!("eth"));
+}
+
+#[test]
+#[should_panic(expected = "HostError: Error(Contract, #3)")] // UnsupportedToken
+fn test_should_not_remove_unknown_supported_token() {
+    let (env, lending_contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
+    
+    lending_contract_client.remove_supported_token(&symbol_short!("usdt"));
+}
