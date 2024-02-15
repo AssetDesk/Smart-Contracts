@@ -1,4 +1,4 @@
-use soroban_sdk::{token, Address, Env, Map, Symbol, Vec};
+use soroban_sdk::{panic_with_error, token, Address, Env, Map, Symbol, Vec};
 
 use core::ops::{Div, Mul};
 use rust_decimal::prelude::{Decimal, MathematicalOps, ToPrimitive};
@@ -12,7 +12,7 @@ pub(crate) const WEEK_BUMP_AMOUNT: u32 = 7 * DAY_IN_LEDGERS;
 pub(crate) const WEEK_LIFETIME_THRESHOLD: u32 = WEEK_BUMP_AMOUNT - DAY_IN_LEDGERS;
 
 pub(crate) const MONTH_BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS;
-pub(crate) const MONTH_LIFETIME_THRESHOLD: u32 = MONTH_BUMP_AMOUNT - DAY_IN_LEDGERS;
+pub(crate) const MONTH_LIFETIME_THRESHOLD: u32 = MONTH_BUMP_AMOUNT - WEEK_BUMP_AMOUNT;
 
 pub(crate) const PERCENT_DECIMALS: u32 = 5;
 pub(crate) const HUNDRED_PERCENT: u128 = 100 * 10u128.pow(PERCENT_DECIMALS);
@@ -57,6 +57,53 @@ pub fn set_admin(env: &Env, admin: &Address) {
         .extend_ttl(&key, MONTH_LIFETIME_THRESHOLD, MONTH_BUMP_AMOUNT);
 
     events::set_admin(env, admin);
+}
+
+pub fn edit_token_info(
+    env: &Env,
+    denom: Symbol,
+    address: Address,
+    name: Symbol,
+    symbol: Symbol,
+    decimals: u32,
+) -> Result<(), Error> {
+    // Admin only
+    let admin: Address = get_admin(&env).unwrap();
+    admin.require_auth();
+
+    let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+    if !supported_tokens.contains(denom.clone()) {
+        panic_with_error!(env, Error::UnsupportedToken);
+    }
+
+    let mut supported_tokens_info: Map<Symbol, TokenInfo> = env
+        .storage()
+        .persistent()
+        .get(&DataKey::SupportedTokensInfo)
+        .unwrap_or(Map::new(&env));
+    let mut token_info: TokenInfo = supported_tokens_info.get(denom.clone()).unwrap();
+    token_info.denom = denom.clone();
+    token_info.address = address.clone();
+    token_info.name = name;
+    token_info.symbol = symbol;
+    token_info.decimals = decimals;
+
+    // Update balance from token contract
+    let token_client = token::Client::new(&env, &address);
+    let balance = token_client.balance(&env.current_contract_address());
+    token_info.balance = balance;
+
+    supported_tokens_info.set(denom.clone(), token_info);
+    env.storage()
+        .persistent()
+        .set(&DataKey::SupportedTokensInfo, &supported_tokens_info);
+    env.storage().persistent().extend_ttl(
+        &DataKey::SupportedTokensInfo,
+        MONTH_LIFETIME_THRESHOLD,
+        MONTH_BUMP_AMOUNT,
+    );
+
+    Ok(())
 }
 
 pub fn get_deposit(env: Env, user: Address, denom: Symbol) -> Result<u128, Error> {

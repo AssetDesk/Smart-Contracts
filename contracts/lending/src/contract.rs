@@ -861,6 +861,17 @@ impl LendingContract {
         Ok(())
     }
 
+    pub fn edit_token_info(
+        env: Env,
+        denom: Symbol,
+        address: Address,
+        name: Symbol,
+        symbol: Symbol,
+        decimals: u32,
+    ) -> Result<(), Error> {
+        edit_token_info(&env, denom, address, name, symbol, decimals)
+    }
+
     pub fn get_deposit(env: Env, user: Address, denom: Symbol) -> Result<u128, Error> {
         get_deposit(env, user, denom)
     }
