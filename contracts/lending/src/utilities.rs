@@ -59,6 +59,53 @@ pub fn set_admin(env: &Env, admin: &Address) {
     events::set_admin(env, admin);
 }
 
+pub fn remove_supported_token(env: &Env, denom: Symbol) -> Result<(), Error> {
+    // Admin only
+    let admin: Address = get_admin(&env).unwrap();
+    admin.require_auth();
+
+    let mut supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+
+    let token_index = supported_tokens.first_index_of(denom.clone());
+
+    let _ = supported_tokens
+        .remove(token_index.expect("REASON"))
+        .ok_or(Error::UnsupportedToken);
+    env.storage()
+        .persistent()
+        .set(&DataKey::SupportedTokensList, &supported_tokens);
+    env.storage().persistent().extend_ttl(
+        &DataKey::SupportedTokensList,
+        MONTH_LIFETIME_THRESHOLD,
+        MONTH_BUMP_AMOUNT,
+    );
+
+    Ok(())
+}
+
+pub fn add_supported_token(env: &Env, denom: Symbol) -> Result<(), Error> {
+    // Admin only
+    let admin: Address = get_admin(&env).unwrap();
+    admin.require_auth();
+
+    let mut supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
+    if supported_tokens.contains(denom.clone()) {
+        panic_with_error!(env, Error::AlreadySupportedToken);
+    }
+
+    supported_tokens.push_back(denom.clone());
+    env.storage()
+        .persistent()
+        .set(&DataKey::SupportedTokensList, &supported_tokens);
+    env.storage().persistent().extend_ttl(
+        &DataKey::SupportedTokensList,
+        MONTH_LIFETIME_THRESHOLD,
+        MONTH_BUMP_AMOUNT,
+    );
+
+    Ok(())
+}
+
 pub fn edit_token_info(
     env: &Env,
     denom: Symbol,
