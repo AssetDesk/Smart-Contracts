@@ -872,6 +872,18 @@ impl LendingContract {
         edit_token_info(&env, denom, address, name, symbol, decimals)
     }
 
+    pub fn remove_supported_token(env: &Env, denom: Symbol) -> Result<(), Error> {
+        remove_supported_token(&env, denom)
+    }
+
+    pub fn add_supported_token(env: &Env, denom: Symbol) -> Result<(), Error> {
+        add_supported_token(&env, denom)
+    }
+
+    pub fn get_supported_tokens(env: &Env) -> Vec<Symbol> {
+        get_supported_tokens(env.clone())
+    }
+
     pub fn get_deposit(env: Env, user: Address, denom: Symbol) -> Result<u128, Error> {
         get_deposit(env, user, denom)
     }
