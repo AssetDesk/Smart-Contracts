@@ -5,28 +5,18 @@ use soroban_sdk::{contracttype, Address, Symbol};
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
-    VaultContract,
-    Admin,
-    // Address of the Contract admin account
-    TotalBorrowData,
-    // Map of TotalBorrowData per denom
-    SupportedTokensInfo,
-    // Map of TokenInfo denom data
-    SupportedTokensList,
-    // List of supported tokens
-    LiquidityIndexData,
-    // Map of LiquidityIndexData per denom
-    UserMMTokenBalance(Address),
-    // user mm token balance per denom
-    ReserveConfiguration,
-    //Map ReserveConfiguration per denom
-    TokensInterestRateModelParams,
-    // Map TokenInterestRateModelParams per denom
-    Prices,
-    // Map price for denom
-    UserDepositAsCollateral(Address),
-    // Map of bool per denom
-    UserBorrowingInfo(Address), // Map UserBorrowingInfo per denom
+    Admin,                            // Address of the Contract admin account
+    Pause,                            // Protocol pause
+    TotalBorrowData,                  // Map of TotalBorrowData per denom
+    SupportedTokensInfo,              // Map of TokenInfo denom data
+    SupportedTokensList,              // List of supported tokens
+    LiquidityIndexData,               // Map of LiquidityIndexData per denom
+    UserMMTokenBalance(Address),      // Map of user mm token balance per denom
+    ReserveConfiguration,             // Map ReserveConfiguration per denom
+    TokensInterestRateModelParams,    // Map TokenInterestRateModelParams per denom
+    Prices,                           // Map price for denom
+    UserDepositAsCollateral(Address), // Map of bool per denom
+    UserBorrowingInfo(Address),       // Map UserBorrowingInfo per denom
 }
 
 #[contracttype]

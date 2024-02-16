@@ -30,6 +30,8 @@ impl LendingContract {
     ) -> Result<(), Error> {
         user_address.require_auth();
 
+        require_not_paused(&env);
+
         let token_address: Address = get_token_address(env.clone(), denom.clone());
         move_token(
             &env,
@@ -153,6 +155,8 @@ impl LendingContract {
 
     pub fn borrow(env: Env, user: Address, denom: Symbol, amount: u128) -> Result<(), Error> {
         user.require_auth();
+
+        require_not_paused(&env);
 
         let supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
         if !supported_tokens.contains(denom.clone()) {
@@ -796,6 +800,8 @@ impl LendingContract {
     pub fn toggle_collateral_setting(env: Env, user: Address, denom: Symbol) -> Result<(), Error> {
         user.require_auth();
 
+        require_not_paused(&env);
+
         let use_user_deposit_as_collateral =
             user_deposit_as_collateral(env.clone(), user.clone(), denom.clone())?;
 
@@ -857,6 +863,21 @@ impl LendingContract {
         admin.require_auth();
 
         set_admin(&env, &new_admin);
+
+        Ok(())
+    }
+
+    pub fn set_pause(env: Env, pause: bool) -> Result<(), Error> {
+        // Admin only
+        let admin: Address = get_admin(&env).unwrap();
+        admin.require_auth();
+
+        env.storage().persistent().set(&DataKey::Pause, &pause);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Pause,
+            MONTH_LIFETIME_THRESHOLD,
+            MONTH_BUMP_AMOUNT,
+        );
 
         Ok(())
     }

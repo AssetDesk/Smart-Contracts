@@ -59,6 +59,17 @@ pub fn set_admin(env: &Env, admin: &Address) {
     events::set_admin(env, admin);
 }
 
+pub fn require_not_paused(env: &Env) {
+    let pause = env
+        .storage()
+        .persistent()
+        .get(&DataKey::Pause)
+        .unwrap_or(false);
+    if pause {
+        panic_with_error!(env, Error::Paused);
+    }
+}
+
 pub fn remove_supported_token(env: &Env, denom: Symbol) -> Result<(), Error> {
     // Admin only
     let admin: Address = get_admin(&env).unwrap();
@@ -66,11 +77,11 @@ pub fn remove_supported_token(env: &Env, denom: Symbol) -> Result<(), Error> {
 
     let mut supported_tokens: Vec<Symbol> = get_supported_tokens(env.clone());
 
-    let token_index = supported_tokens.first_index_of(denom.clone()).ok_or((Error::UnsupportedToken));
+    let token_index = supported_tokens
+        .first_index_of(denom.clone())
+        .ok_or(Error::UnsupportedToken);
 
-    let _ = supported_tokens
-        .remove(token_index?)
-        .unwrap();
+    let _ = supported_tokens.remove(token_index?).unwrap();
     env.storage()
         .persistent()
         .set(&DataKey::SupportedTokensList, &supported_tokens);
