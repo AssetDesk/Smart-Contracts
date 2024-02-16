@@ -1455,3 +1455,33 @@ fn test_should_not_remove_unknown_supported_token() {
 
     lending_contract_client.remove_supported_token(&symbol_short!("usdt"));
 }
+
+#[test]
+#[should_panic(expected = "HostError: Error(Contract, #2)")] // Paused
+fn test_should_not_deposit_when_paused() {
+    let (env, lending_contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
+
+    lending_contract_client.set_pause(&true);
+
+    lending_contract_client.deposit(&user, &symbol_short!("eth"), &1_000000000);
+}
+
+#[test]
+#[should_panic(expected = "HostError: Error(Contract, #2)")] // Paused
+fn test_should_not_borrow_when_paused() {
+    let (env, lending_contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
+
+    lending_contract_client.set_pause(&true);
+
+    lending_contract_client.borrow(&user, &symbol_short!("eth"), &1_000000000);
+}
+
+#[test]
+#[should_panic(expected = "HostError: Error(Contract, #2)")] // Paused
+fn test_should_not_toggle_when_paused() {
+    let (env, lending_contract_client, admin, user) = success_deposit_of_diff_token_with_prices();
+
+    lending_contract_client.set_pause(&true);
+
+    lending_contract_client.toggle_collateral_setting(&user, &symbol_short!("eth"));
+}
